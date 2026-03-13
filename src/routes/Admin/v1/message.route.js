@@ -1,12 +1,12 @@
 import express from 'express';
-import { messageController } from '../../controllers/message.controller.js';
-import { messageValidation } from '../../validations/message.validation.js';
-import { verifyToken } from '../../middlewares/auth.middleware.js';
+import { messageController } from '../../../controllers/message.controller.js';
+import { messageValidation } from '../../../validations/message.validation.js';
+// import { verifyToken } from '../../middlewares/auth.middleware.js';
 
 const Router = express.Router();
 
 // Sử dụng middleware bảo mật
-Router.use(verifyToken);
+// Router.use(verifyToken);
 
 // POST /api/v1/messages -> Tạo tin nhắn mới
 Router.route('/')

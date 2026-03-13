@@ -1,11 +1,29 @@
 import express from 'express';
-import 'dotenv/config'; // 1. Tự động load các biến môi trường từ file .env
-import mongoose from 'mongoose'; // 2. Import mongoose để kết nối DB
-import { APIs_V1 } from './routes/v1/index.js'; // 3. Import các route API của bạn
+import 'dotenv/config'; 
+import mongoose from 'mongoose'; 
+import cors from 'cors'; // 1. Import thư viện cors
+import { APIs_V1 } from './routes/Admin/v1/index.js'; 
 
 const app = express();
 const PORT = process.env.PORT;
-const MONGODB_URI = process.env.MONGODB_URI; // Lấy URI kết nối từ biến môi trường
+const MONGODB_URI = process.env.MONGODB_URI; 
+
+// 2. Kích hoạt CORS cho phép Frontend gọi API
+// Dùng app.use(cors()) mặc định sẽ cho phép mọi origin gọi đến
+// app.use(cors());
+
+// (Tùy chọn nâng cao) Nếu muốn bảo mật hơn, bạn giới hạn chỉ cho Frontend ở port 5173 gọi:
+// app.use(cors({ origin: 'http://localhost:5173' }));
+const allowedOrigins = [
+  'http://localhost:5173',
+].filter(Boolean) // Loại bỏ undefined
+
+app.use(cors({
+  origin: allowedOrigins, // FE origin
+  credentials: true, // Cho phép gửi cookie từ FE
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],     // Các phương thức HTTP được phép
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control']   // Cho phép các header cần thiết
+}))
 
 app.use(express.json());
 
@@ -16,16 +34,14 @@ app.get('/', (req, res) => {
   res.send('Hello from the medical chatbot backend!');
 });
 
-// 4. Bọc hàm listen bên trong block kết nối Database thành công
 mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('Connected to MongoDB successfully!');
-    // Chỉ khi kết nối DB thành công mới cho server lắng nghe request
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
   })
   .catch((error) => {
     console.error('Failed to connect to MongoDB:', error);
-    process.exit(1); // Dừng ứng dụng nếu không kết nối được DB
+    process.exit(1); 
   });

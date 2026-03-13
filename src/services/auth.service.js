@@ -1,70 +1,86 @@
+// src/services/admin/auth.service.js
+import bcrypt from 'bcrypt';
+import { JWTProvider } from '../providers/jwt.provider.js';
 import { AccountModel } from '../models/account.model.js';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 
 const registerAdmin = async (reqBody) => {
-  // 1. Kiểm tra email đã tồn tại trong bảng Account chưa
   const existingAccount = await AccountModel.findOne({ email: reqBody.email });
   if (existingAccount) {
-    throw new Error('Email này đã được đăng ký!');
+    return { success: false, code: 400, message: 'Email này đã được đăng ký!' };
   }
 
-  // 2. Mã hóa mật khẩu
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(reqBody.password, salt);
 
-  // 3. Tạo tài khoản
   const newAccount = await AccountModel.create({
     ...reqBody,
-    password: hashedPassword
+    password: hashedPassword,
+    status: 'ACTIVE',
+    deleted: false
   });
-  await newAccount.save()
-  // 4. Bỏ field password trước khi trả về
+
   const accountResponse = newAccount.toObject();
   delete accountResponse.password;
 
-  return accountResponse;
+  return { success: true, accountAdmin: accountResponse };
 };
 
-const loginAdmin = async (reqBody) => {
-  // 1. Tìm account theo email. 
-  // Vì trong model Account cài đặt select: false cho password, ta phải dùng .select('+password') để lấy ra so sánh
-  const account = await AccountModel.findOne({ email: reqBody.email }).select('+password');
-  
-  if (!account) {
-    throw new Error('Email không tồn tại!');
+const loginAdmin = async (data) => {
+  const { email, password } = data;
+  const accountAdmin = await AccountModel.findOne({ email, deleted: false }).select('+password');;
+
+  if (!accountAdmin) {
+    return { success: false, code: 401, message: 'Tài khoản hoặc mật khẩu không chính xác!' };
   }
 
-  // 2. So sánh mật khẩu gửi lên với mật khẩu đã hash trong DB
-  const isMatch = await bcrypt.compare(reqBody.password, account.password);
+  const isMatch = await bcrypt.compare(password, accountAdmin.password);
   if (!isMatch) {
-    throw new Error('Mật khẩu không chính xác!');
+    return { success: false, code: 401, message: 'Tài khoản hoặc mật khẩu không chính xác!' };
   }
 
-  // 3. Nếu account bị khóa (INACTIVE)
-  if (account.status === 'INACTIVE' || account.deleted) {
-    throw new Error('Tài khoản đã bị khóa hoặc xóa!');
+  if (accountAdmin.status === 'INACTIVE') {
+    return { success: false, code: 403, message: 'Tài khoản đã bị khóa!' };
   }
 
-  // 4. Tạo JWT Token
-  // Đảm bảo bạn đã khai báo JWT_SECRET trong file .env
   const payload = {
-    _id: account._id,
-    email: account.email,
-    role: 'ADMIN' // Có thể thêm role để sau này phân quyền
+    accountId: accountAdmin._id,
+    email: accountAdmin.email
   };
+
+  const accessToken = JWTProvider.generateToken(payload, process.env.JWT_ACCESS_TOKEN_SECRET_ADMIN, '1h');
+  const refreshToken = JWTProvider.generateToken(payload, process.env.JWT_REFRESH_TOKEN_SECRET_ADMIN, '14d');
   
-  const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: '1d' // Token hết hạn sau 1 ngày
-  });
 
-  const accountResponse = account.toObject();
-  delete accountResponse.password;
+  const accountToObject = accountAdmin.toObject();
+  delete accountToObject.password;
 
-  return {
-    account: accountResponse,
-    accessToken
-  };
+  return { success: true, accessToken, refreshToken, accountAdmin: accountToObject };
 };
 
-export const authService = { registerAdmin, loginAdmin };
+const refreshTokenAdmin = async (refreshToken) => {
+  if (!refreshToken) {
+    return { success: false, code: 401, message: 'Không tồn tại refreshToken!' };
+  }
+
+  try {
+    const decoded = JWTProvider.verifyToken(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET_ADMIN);
+    
+    const account = await AccountModel.findById(decoded.accountId);
+    if (!account || account.deleted) {
+      return { success: false, code: 404, message: 'Tài khoản không tồn tại!' };
+    }
+
+    const payload = { 
+      accountId: decoded.accountId, 
+      email: decoded.email
+    };
+
+    const newAccessToken = JWTProvider.generateToken(payload, process.env.JWT_ACCESS_TOKEN_SECRET_ADMIN, '1h');
+    
+    return { success: true, newAccessToken };
+  } catch (error) {
+    return { success: false, code: 401, message: 'Refresh Token không hợp lệ hoặc đã hết hạn!' };
+  }
+};
+
+export const authServices = { registerAdmin, loginAdmin, refreshTokenAdmin };

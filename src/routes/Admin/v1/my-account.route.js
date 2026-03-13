@@ -1,13 +1,13 @@
 import express from 'express';
-import { myAccountController } from '../../controllers/my-account.controller.js';
-import { myAccountValidation } from '../../validations/my-account.validation.js';
-import { verifyToken } from '../../middlewares/auth.middleware.js'; // Nhúng middleware
+import { myAccountController } from '../../../controllers/my-account.controller.js';
+import { myAccountValidation } from '../../../validations/my-account.validation.js';
+// import { verifyToken } from '../../middlewares/auth.middleware.js'; // Nhúng middleware
 
 const Router = express.Router();
 
 // Sử dụng middleware xác thực cho TẤT CẢ các API bên dưới
 // Nếu không gửi Token, req sẽ bị chặn lại ở đây
-Router.use(verifyToken);
+// Router.use(verifyToken);
 
 // Cả 2 API đều dùng chung endpoint là /api/v1/my-account
 Router.route('/')
