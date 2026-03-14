@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { messageService } from '../services/message.service.js';
+import { messageService } from '../../services/Admin/message.service.js';
 
 const createMessage = async (req, res) => {
   try {

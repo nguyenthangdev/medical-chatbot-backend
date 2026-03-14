@@ -1,6 +1,7 @@
 import express from 'express';
-import { messageController } from '../../../controllers/message.controller.js';
-import { messageValidation } from '../../../validations/message.validation.js';
+import { messageController } from '../../../controllers/Admin/message.controller.js';
+import { messageValidation } from '../../../validations/Admin/message.validation.js'
+
 // import { verifyToken } from '../../middlewares/auth.middleware.js';
 
 const Router = express.Router();

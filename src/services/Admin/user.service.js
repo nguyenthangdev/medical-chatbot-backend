@@ -1,4 +1,4 @@
-import { UserModel } from '../models/user.model.js';
+import { UserModel } from '../../models/user.model.js';
 
 // 1. Lấy danh sách Users (có thể thêm phân trang, tìm kiếm sau này)
 const getList = async () => {

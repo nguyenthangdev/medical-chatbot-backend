@@ -1,7 +1,7 @@
 // src/middlewares/auth.middleware.js
 import { StatusCodes } from 'http-status-codes';
-import { JWTProvider } from '../providers/jwt.provider.js';
-import { AccountModel } from '../models/account.model.js';
+import { JWTProvider } from '../../providers/jwt.provider.js';
+import { AccountModel } from '../../models/account.model.js';
 
 export const requireAuth = async (req, res, next) => {
   try {

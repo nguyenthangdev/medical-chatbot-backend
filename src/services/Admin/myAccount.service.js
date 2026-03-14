@@ -1,4 +1,4 @@
-import { AccountModel } from '../models/account.model.js';
+import { AccountModel } from '../../models/account.model.js';
 
 // Lấy chi tiết tài khoản cá nhân
 const getMyProfile = async (accountId) => {

@@ -2,10 +2,10 @@ import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema(
   {
-    email: { type: String, required: true, unique: true, trim: true },
+    email: { type: String, unique: true, trim: true },
     password: { type: String, required: false, select: false }, 
     fullName: { type: String, required: true },
-    yearOfBirth: { type: String, required: true },
+    yearOfBirth: { type: String },
     sex: { type: String, enum: ['MALE', 'FEMALE', 'OTHER'], default: 'MALE' },
     address: { type: String },
     phone: { type: String },

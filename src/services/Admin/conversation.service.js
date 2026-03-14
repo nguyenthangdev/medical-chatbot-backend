@@ -1,4 +1,4 @@
-import { ConversationModel } from '../models/conversation.model.js';
+import { ConversationModel } from '../../models/conversation.model.js';
 
 // 1. Lấy danh sách cuộc hội thoại
 const getList = async () => {

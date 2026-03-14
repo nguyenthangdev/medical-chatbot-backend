@@ -4,7 +4,7 @@ import { myAccountRoute } from './myAccount.route.js';
 import { userRoute } from './user.route.js';
 import { conversationRoute } from './conversation.route.js';
 import { messageRoute } from './message.route.js';
-import { requireAuth } from '../../../middlewares/auth.middleware.js';
+import { requireAuth } from '../../../middlewares/Admin/auth.middleware.js';
 
 const Router = express.Router();
 

@@ -1,5 +1,5 @@
-import { MessageModel } from '../models/message.model.js';
-import { ConversationModel } from '../models/conversation.model.js';
+import { MessageModel } from '../../models/message.model.js';
+import { ConversationModel } from '../../models/conversation.model.js';
 
 // 1. Tạo tin nhắn mới
 const createMessage = async (data) => {

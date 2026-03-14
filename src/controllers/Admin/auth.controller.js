@@ -1,7 +1,7 @@
 // src/controllers/admin/auth.controller.js
 import { StatusCodes } from 'http-status-codes';
-import { authServices } from '../services/auth.service.js';
-import { getCookieOptions } from '../utils/constants.js';
+import { authServices } from '../../services/Admin/auth.service.js';
+import { getCookieOptions } from '../../utils/constants.js'
 
 export const registerAdmin = async (req, res) => {
   try {

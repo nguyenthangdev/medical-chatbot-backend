@@ -1,7 +1,7 @@
 // src/services/admin/auth.service.js
 import bcrypt from 'bcrypt';
-import { JWTProvider } from '../providers/jwt.provider.js';
-import { AccountModel } from '../models/account.model.js';
+import { JWTProvider } from '../../providers/jwt.provider.js';
+import { AccountModel } from '../../models/account.model.js';
 
 const registerAdmin = async (reqBody) => {
   const existingAccount = await AccountModel.findOne({ email: reqBody.email });

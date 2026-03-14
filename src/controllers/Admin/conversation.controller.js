@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { conversationService } from '../services/conversation.service.js';
+import { conversationService } from '../../services/Admin/conversation.service.js';
 
 const getList = async (req, res) => {
   try {

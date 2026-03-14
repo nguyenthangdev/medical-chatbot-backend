@@ -1,6 +1,7 @@
 import express from 'express';
-import { myAccountController } from '../../../controllers/myAccount.js';
-import { myAccountValidation } from '../../../validations/myAccount.validation.js';
+import { myAccountController } from '../../../controllers/Admin/myAccount.controller.js';
+import { myAccountValidation } from '../../../validations/Admin/myAccount.validation.js';
+
 // import { verifyToken } from '../../middlewares/auth.middleware.js'; // Nhúng middleware
 
 const Router = express.Router();
