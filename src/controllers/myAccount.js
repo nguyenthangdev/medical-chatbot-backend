@@ -1,10 +1,10 @@
 import { StatusCodes } from 'http-status-codes';
-import { myAccountService } from '../services/my-account.service.js';
+import { myAccountService } from '../services/myAccount.service.js';
 
 const getMyProfile = async (req, res) => {
   try {
     // Lấy ID từ token đăng nhập
-    const accountId = req.account._id; 
+    const accountId = req.accountAdmin._id; 
     
     const account = await myAccountService.getMyProfile(accountId);
     res.status(StatusCodes.OK).json({ data: account });
@@ -16,7 +16,7 @@ const getMyProfile = async (req, res) => {
 const updateMyProfile = async (req, res) => {
   try {
     // Lấy ID từ token đăng nhập
-    const accountId = req.account._id;
+    const accountId = req.accountAdmin._id;
     
     const updatedAccount = await myAccountService.updateMyProfile(accountId, req.body);
     

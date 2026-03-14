@@ -3,7 +3,7 @@ import 'dotenv/config';
 import mongoose from 'mongoose'; 
 import cors from 'cors'; // 1. Import thư viện cors
 import { APIs_V1 } from './routes/Admin/v1/index.js'; 
-
+import cookieParser from 'cookie-parser';
 const app = express();
 const PORT = process.env.PORT;
 const MONGODB_URI = process.env.MONGODB_URI; 
@@ -24,7 +24,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],     // Các phương thức HTTP được phép
   allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control']   // Cho phép các header cần thiết
 }))
-
+app.use(cookieParser()); // Để giải mã cookie
 app.use(express.json());
 
 // Đăng ký sử dụng toàn bộ API phiên bản v1

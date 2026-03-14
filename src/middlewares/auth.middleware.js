@@ -7,6 +7,7 @@ export const requireAuth = async (req, res, next) => {
   try {
     // Đọc accessToken từ cookie
     const accessToken = req.cookies?.accessToken;
+
     if (!accessToken) {
       return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Vui lòng đăng nhập (Không tìm thấy token)!' });
     }

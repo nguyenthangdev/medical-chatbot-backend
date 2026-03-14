@@ -10,8 +10,8 @@
   "scripts": {
     "lint": "eslint src --ext js --report-unused-disable-directives --max-warnings 0",
     "clean": "rm -rf build && mkdir build",
-    "build": "npm run clean && npm run",
-    "production": "npm run build && cross-env BUILD_MODE=production node ./build/src/server.js",
+    "build": "yarn run clean && yarn run",
+    "production": "yarn run build && cross-env BUILD_MODE=production node ./build/src/server.js",
     "dev": "cross-env BUILD_MODE=dev nodemon ./src/server.js"
   },
   "dependencies": {

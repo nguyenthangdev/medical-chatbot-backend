@@ -62,7 +62,6 @@ export const refreshToken = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    // Xóa cookie để đăng xuất
     res.clearCookie('accessToken', getCookieOptions('1h'));
     res.clearCookie('refreshToken', getCookieOptions('14d'));
 
