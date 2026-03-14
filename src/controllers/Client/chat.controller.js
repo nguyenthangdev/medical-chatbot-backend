@@ -36,6 +36,8 @@ export const sendMessage = async (req, res) => {
       return res.status(400).json({ error: 'conversationId và message là bắt buộc' })
 
     const conversation = await ConversationModel.findById(conversationId)
+        console.log('💬 Conversation found:', conversation) // ← thêm dòng này
+
     if (!conversation)
       return res.status(404).json({ error: 'Không tìm thấy conversation' })
 
@@ -45,6 +47,7 @@ export const sendMessage = async (req, res) => {
     // Gọi AI server
     const startTime = Date.now()
     const aiData = await aiService.sendMessage(conversation.aiSessionId, message, model)
+    console.log("aiDATA: ", sendMessage)
     const latency = `${Date.now() - startTime}ms`
 
     // Lưu phản hồi AI
@@ -100,6 +103,19 @@ export const deleteConversation = async (req, res) => {
     await ConversationModel.findByIdAndDelete(conversationId)
     res.json({ message: 'Đã xóa conversation' })
   } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+// Thêm vào cuối chat.controller.js
+export const sttController = async (req, res) => {
+  try {
+    console.log('📁 File nhận được:', req.file) 
+    const text = await aiService.speechToText(req.file?.buffer)
+    console.log("text:", text)
+    res.json({ text })
+  } catch (err) {
+    console.error('❌ STT Error:', err.message) // ← xem lỗi cụ thể
     res.status(500).json({ error: err.message })
   }
 }
