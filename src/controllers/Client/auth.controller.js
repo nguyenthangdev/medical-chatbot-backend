@@ -67,7 +67,7 @@ export const authController = {
   loginClient: async (req, res) => {
     try {
       const { identifier, password } = req.body;
-
+      console.log(req.body)
       // 1. Dùng Regex để xác định người dùng đang nhập Email hay Số điện thoại
       const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
       
