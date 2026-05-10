@@ -5,7 +5,8 @@ import {
   getConversations,
   getMessages,
   deleteConversation,
-  sttController
+  sttController,
+  ttsController
 } from '../../../controllers/Client/chat.controller.js'
 import multer from 'multer'
 const upload = multer()
@@ -19,5 +20,5 @@ Router.get('/messages/:conversationId', getMessages)
 Router.delete('/conversation/:conversationId', deleteConversation)
 
 Router.post('/stt', upload.single('file'), sttController)
-
+Router.post('/tts', ttsController);
 export const chatRoute = Router;

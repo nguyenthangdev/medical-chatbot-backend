@@ -48,37 +48,51 @@ const AI_ENABLED = process.env.AI_SERVER_URL
 
 const aiClient = axios.create({
   baseURL: process.env.AI_SERVER_URL || "http://localhost:8000",
-  headers: { "Content-Type": "application/json" },
+  headers: { 
+    "Content-Type": "application/json",
+    "X-API-Key": process.env.AI_API_KEY || "key-webapp-abc123"
+  },
   timeout: 60000, // AI xử lý lâu nên để 60s
 });
 
 // Tạo session mới
-export const createSession = async (userId, model) => {
-  // if (AI_ENABLED) {
-  //   const { data } = await aiClient.post('/session/', { user_id: userId, model })
-  //   return data
-  // }
-  return { session_id: `mock_session_${Date.now()}` }
+export const createSession = async (userId, model = 'qwen-7b') => {
+  // AI server tự động tạo session khi gọi predict lần đầu
+  return { session_id: `session_${userId}_${Date.now()}` };
 };
 
 // Gửi tin nhắn và nhận phản hồi từ AI
-export const sendMessage = async (sessionId, message, model) => {
-  // if (AI_ENABLED) {
-  //   console.log("vao day")
-  //   const { data } = await aiClient.post('/chat/', {
-  //     session_id: sessionId,
-  //     message,
-  //     model,
-  //     temperature: 0.7,
-  //   })
-  //   return data
-  // }
- 
-  // MOCK — delay 1s giả lập AI xử lý
-  await new Promise((r) => setTimeout(r, 1000))
-  return {
-    response: getMockResponse(message),
-    model_used: 'mock-model',
+export const sendMessage = async (sessionId, message, model = 'qwen-7b') => {
+  try {
+    const response = await aiClient.post('/api/predict', {
+      message,
+      session_id: sessionId,
+      enable_tts: false  // hoặc true nếu cần TTS
+    });
+    return {
+      answer: response.data.answer,
+      session_id: response.data.session_id,
+      model_used: model,
+      intent: response.data.intent,
+      risk_level: response.data.risk_level,
+      confidence: response.data.confidence,
+      blocked: response.data.blocked,
+      warnings: response.data.warnings,
+      sources: response.data.sources || []
+    };
+  } catch (error) {
+    console.error('AI service error:', error.response?.data || error.message);
+    // Fallback to mock
+    return {
+      answer: getMockResponse(message),
+      session_id: sessionId,
+      intent: 'general',
+      risk_level: 'low',
+      confidence: 0.8,
+      blocked: false,
+      warnings: [],
+      sources: []
+    };
   }
 };
 

@@ -28,6 +28,13 @@ const messageSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    deleted: { type: Boolean, default: false },
+    intent: { type: String, default: null },
+    risk_level: { type: String, default: null },
+    confidence: { type: Number, default: null },
+    blocked: { type: Boolean, default: false },
+    warnings: { type: [String], default: [] },
+    sources: { type: [mongoose.Schema.Types.Mixed], default: [] }
   },
   {
     timestamps: true,

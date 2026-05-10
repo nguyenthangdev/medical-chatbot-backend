@@ -41,7 +41,11 @@ export const sendMessage = async (req, res) => {
       return res.status(404).json({ error: 'Không tìm thấy conversation' })
 
     // Lưu tin nhắn user
-    await MessageModel.create({ conversationId, role: 'user', content: message })
+    await MessageModel.create({ 
+      conversationId, 
+      role: 'user', 
+      content: message 
+    })
 
     // Gọi AI server
     const startTime = Date.now()
@@ -53,8 +57,12 @@ export const sendMessage = async (req, res) => {
     await MessageModel.create({
       conversationId,
       role: 'assistant',
-      content: aiData.response,
+      content: aiData.answer,
       model: aiData.model_used,
+      risk_level: aiData.risk_level,
+      blocked: aiData.blocked,
+      warnings: aiData.warnings,
+      sources: aiData.sources,
       latency,
     })
 
@@ -66,7 +74,15 @@ export const sendMessage = async (req, res) => {
       })
     }
 
-    res.json({ response: aiData.response, model_used: aiData.model_used, latency })
+    res.json({ 
+      response: aiData.answer, 
+      model_used: aiData.model_used, 
+      risk_level: aiData.risk_level,
+      blocked: aiData.blocked,
+      warnings: aiData.warnings,
+      sources: aiData.sources,
+      latency 
+    })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -109,12 +125,28 @@ export const deleteConversation = async (req, res) => {
 // Thêm vào cuối chat.controller.js
 export const sttController = async (req, res) => {
   try {
-    console.log('📁 File nhận được:', req.file) 
-    const text = await aiService.speechToText(req.file?.buffer)
-    console.log("text:", text)
-    res.json({ text })
-  } catch (err) {
-    console.error('❌ STT Error:', err.message) // ← xem lỗi cụ thể
-    res.status(500).json({ error: err.message })
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    
+    const formData = new FormData();
+    formData.append('file', req.file.buffer, { filename: req.file.originalname });
+    
+    const response = await aiClient.post('/api/stt', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    
+    res.json({ text: response.data.text });
+  } catch (error) {
+    res.status(500).json({ error: 'STT failed', details: error.message });
   }
-}
+};
+
+export const ttsController = async (req, res) => {
+  try {
+    const { text } = req.body;
+    const response = await aiClient.post('/api/tts', { text }, { responseType: 'blob' });
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.send(response.data);
+  } catch (error) {
+    res.status(500).json({ error: 'TTS failed' });
+  }
+};
