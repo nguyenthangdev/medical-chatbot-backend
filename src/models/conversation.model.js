@@ -21,6 +21,7 @@ const conversationSchema = new mongoose.Schema(
       type: String,
       default: 'qwen-7b',
     },
+    deleted: { type: Boolean, default: false }
   },
   {
     timestamps: true, // tự tạo createdAt, updatedAt
