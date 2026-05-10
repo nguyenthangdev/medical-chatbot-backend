@@ -20,4 +20,4 @@ const updateMyProfile = async (req, res, next) => {
   }
 };
 
-export const myAccountValidation = { updateMyProfile };
+export const myProfileValidation = { updateMyProfile };

@@ -3,14 +3,14 @@ import mongoose from 'mongoose';
 const accountSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, unique: true, trim: true },
-    password: { type: String, required: true, select: false }, // Ẩn password khi query
+    password: { type: String, required: true, select: false },
     fullName: { type: String, required: true },
     phone: { type: String },
     avatar: { type: String },
-    status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     deleted: { type: Boolean, default: false }
   },
-  { timestamps: true } // Tự động tạo createdAt, updatedAt
+  { timestamps: true }
 );
 
-export const AccountModel = mongoose.model('Account', accountSchema, 'my-account');
+export const AccountModel = mongoose.model('Account', accountSchema);

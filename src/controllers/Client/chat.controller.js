@@ -1,4 +1,3 @@
-// back-end/src/controllers/chatController.js
 import * as aiService from '../../services/Client/ai.service.js'
 import { ConversationModel } from '../../models/conversation.model.js'
 import { MessageModel } from '../../models/message.model.js'

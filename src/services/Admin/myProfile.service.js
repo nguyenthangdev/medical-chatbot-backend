@@ -1,6 +1,5 @@
 import { AccountModel } from '../../models/account.model.js';
 
-// Lấy chi tiết tài khoản cá nhân
 const getMyProfile = async (accountId) => {
   const account = await AccountModel.findById(accountId);
   if (!account || account.deleted) {
@@ -9,7 +8,6 @@ const getMyProfile = async (accountId) => {
   return account;
 };
 
-// Chỉnh sửa tài khoản cá nhân
 const updateMyProfile = async (accountId, updateData) => {
   // Chỉ lọc ra các trường cho phép update để bảo mật
   const allowedUpdates = {
@@ -18,16 +16,16 @@ const updateMyProfile = async (accountId, updateData) => {
     ...(updateData.avatar && { avatar: updateData.avatar })
   };
 
-  const updatedAccount = await AccountModel.findByIdAndUpdate(
+  const updatedProfile = await AccountModel.findByIdAndUpdate(
     accountId,
     allowedUpdates,
     { new: true } // Trả về data mới nhất
   );
 
-  if (!updatedAccount) {
+  if (!updatedProfile) {
     throw new Error('Không thể cập nhật tài khoản!');
   }
-  return updatedAccount;
+  return updatedProfile;
 };
 
-export const myAccountService = { getMyProfile, updateMyProfile };
+export const myProfileService = { getMyProfile, updateMyProfile };

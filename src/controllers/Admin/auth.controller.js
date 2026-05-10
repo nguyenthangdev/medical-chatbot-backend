@@ -21,14 +21,12 @@ export const registerAdmin = async (req, res) => {
 export const loginAdmin = async (req, res) => {
   try {
     const result = await authServices.loginAdmin(req.body);
-    console.log(result)
     if (!result.success) {
       return res.status(result.code).json({ message: result.message });
     }
 
     const { accessToken, refreshToken, accountAdmin } = result;
 
-    // Gắn token vào Cookie
     res.cookie('accessToken', accessToken, getCookieOptions('1h'));
     res.cookie('refreshToken', refreshToken, getCookieOptions('14d'));
 
@@ -65,7 +63,7 @@ export const logout = async (req, res) => {
     res.clearCookie('accessToken', getCookieOptions('1h'));
     res.clearCookie('refreshToken', getCookieOptions('14d'));
 
-    res.status(StatusCodes.OK).json({ message: "Đăng xuất thành công!" });
+    res.status(StatusCodes.OK).json({ message: "Đăng xuất thành công!", code: 200 });
   } catch (error) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Lỗi hệ thống!' });
   }

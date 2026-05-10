@@ -1,13 +1,13 @@
 import { StatusCodes } from 'http-status-codes';
-import { myAccountService } from '../../services/Admin/myAccount.service.js';
+import { myProfileService } from '../../services/Admin/myProfile.service.js';
 
 const getMyProfile = async (req, res) => {
   try {
     // Lấy ID từ token đăng nhập
     const accountId = req.accountAdmin._id; 
     
-    const account = await myAccountService.getMyProfile(accountId);
-    res.status(StatusCodes.OK).json({ data: account });
+    const account = await myProfileService.getMyProfile(accountId);
+    res.status(StatusCodes.OK).json({ user: account });
   } catch (error) {
     res.status(StatusCodes.NOT_FOUND).json({ message: error.message });
   }
@@ -18,15 +18,15 @@ const updateMyProfile = async (req, res) => {
     // Lấy ID từ token đăng nhập
     const accountId = req.accountAdmin._id;
     
-    const updatedAccount = await myAccountService.updateMyProfile(accountId, req.body);
+    const updatedProfile = await myProfileService.updateMyProfile(accountId, req.body);
     
     res.status(StatusCodes.OK).json({
       message: 'Cập nhật tài khoản cá nhân thành công',
-      data: updatedAccount
+      user: updatedProfile
     });
   } catch (error) {
     res.status(StatusCodes.BAD_REQUEST).json({ message: error.message });
   }
 };
 
-export const myAccountController = { getMyProfile, updateMyProfile };
+export const myProfileController = { getMyProfile, updateMyProfile };

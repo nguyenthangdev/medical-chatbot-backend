@@ -1,4 +1,3 @@
-// back-end/src/models/messageModel.js
 import mongoose from 'mongoose'
 
 const messageSchema = new mongoose.Schema(

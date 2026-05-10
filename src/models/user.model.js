@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema(
     avatar: { type: String },
     totalTokensUsed: { type: Number, default: 0 },
     googleId: { type: String, unique: true, sparse: true, select: false },
-    status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     deleted: { type: Boolean, default: false }
   },
   { timestamps: true }

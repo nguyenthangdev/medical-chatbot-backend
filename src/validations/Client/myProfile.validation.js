@@ -23,6 +23,6 @@ const updateMyProfile = async (req, res, next) => {
   }
 };
 
-export const myAccountValidation = {
+export const myProfileValidation = {
   updateMyProfile
 };

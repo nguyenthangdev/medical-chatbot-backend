@@ -15,7 +15,7 @@ const registerAdmin = async (reqBody) => {
   const newAccount = await AccountModel.create({
     ...reqBody,
     password: hashedPassword,
-    status: 'ACTIVE',
+    status: 'active',
     deleted: false
   });
 
@@ -38,7 +38,7 @@ const loginAdmin = async (data) => {
     return { success: false, code: 401, message: 'Tài khoản hoặc mật khẩu không chính xác!' };
   }
 
-  if (accountAdmin.status === 'INACTIVE') {
+  if (accountAdmin.status === 'inactive') {
     return { success: false, code: 403, message: 'Tài khoản đã bị khóa!' };
   }
 

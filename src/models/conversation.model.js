@@ -1,4 +1,3 @@
-// back-end/src/models/conversationModel.js
 import mongoose from 'mongoose'
 
 const conversationSchema = new mongoose.Schema(

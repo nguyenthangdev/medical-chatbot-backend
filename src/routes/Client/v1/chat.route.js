@@ -1,4 +1,3 @@
-// back-end/src/routes/chatRoutes.js
 import express from 'express'
 import {
   createConversation,

@@ -1,43 +1,34 @@
 import express from 'express';
 import 'dotenv/config'; 
-import mongoose from 'mongoose'; 
 import cors from 'cors';
 import { APIs_V1 as adminRoutes } from './routes/Admin/v1/index.js'; 
 import { APIs_V1 as clientRoutes } from './routes/Client/v1/index.js';
 import cookieParser from 'cookie-parser';
+import * as database from './config/database.js';
+
+console.log(process.env.MONGO_URL)
+database.connect();
+
 const app = express();
-const PORT = process.env.PORT;
-const MONGODB_URI = process.env.MONGODB_URI; 
+const port = process.env.PORT;
 
 const allowedOrigins = [
   'http://localhost:5173',
 ].filter(Boolean) // Loại bỏ undefined
 
 app.use(cors({
-  origin: allowedOrigins, // FE origin
-  credentials: true, // Cho phép gửi cookie từ FE
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],     // Các phương thức HTTP được phép
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control']   // Cho phép các header cần thiết
+  origin: allowedOrigins, 
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],    
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control']
 }))
 
-app.use(cookieParser()); // Để giải mã cookie
+app.use(cookieParser());
 app.use(express.json());
 
-app.use('/api/v1', adminRoutes);
+app.use(`/api/admin/v1`, adminRoutes);
 app.use('/api/v1', clientRoutes);
 
-app.get('/', (req, res) => {
-  res.send('Hello from the medical chatbot backend!');
-});
-
-mongoose.connect(MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB successfully!');
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-  })
-  .catch((error) => {
-    console.error('Failed to connect to MongoDB:', error);
-    process.exit(1); 
-  });
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`)
+})

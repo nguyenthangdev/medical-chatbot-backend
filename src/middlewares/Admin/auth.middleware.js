@@ -1,11 +1,9 @@
-// src/middlewares/auth.middleware.js
 import { StatusCodes } from 'http-status-codes';
 import { JWTProvider } from '../../providers/jwt.provider.js';
 import { AccountModel } from '../../models/account.model.js';
 
 export const requireAuth = async (req, res, next) => {
   try {
-    // Đọc accessToken từ cookie
     const accessToken = req.cookies?.accessToken;
 
     if (!accessToken) {
@@ -20,14 +18,13 @@ export const requireAuth = async (req, res, next) => {
     const accountAdmin = await AccountModel.findOne({
       _id: decoded.accountId,
       deleted: false,
-      status: 'ACTIVE'
+      status: 'active'
     }).lean();
 
     if (!accountAdmin) {
       return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Người quản trị không tồn tại hoặc đã bị khóa!' });
     }
 
-    // Gắn dữ liệu vào req để các controller phía sau sử dụng
     req.accountAdmin = accountAdmin;
     next();
   } catch (error) {
