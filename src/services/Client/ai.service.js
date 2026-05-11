@@ -46,7 +46,7 @@ const getMockResponse = (message) => {
 const AI_ENABLED = process.env.AI_SERVER_URL
 
 
-const aiClient = axios.create({
+export const aiClient = axios.create({
   baseURL: process.env.AI_SERVER_URL || "http://localhost:8000",
   headers: { 
     "Content-Type": "application/json",

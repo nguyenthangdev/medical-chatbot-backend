@@ -6,7 +6,6 @@ import { APIs_V1 as clientRoutes } from './routes/Client/v1/index.js';
 import cookieParser from 'cookie-parser';
 import * as database from './config/database.js';
 
-console.log(process.env.MONGO_URL)
 database.connect();
 
 const app = express();
