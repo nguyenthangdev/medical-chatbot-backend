@@ -59,12 +59,13 @@ export const createSession = async (userId, model = 'qwen-7b') => {
 };
 
 // Gửi tin nhắn và nhận phản hồi từ AI
-export const sendMessage = async (sessionId, message, model = 'qwen-7b') => {
+export const sendMessage = async (sessionId, message, model = 'qwen-7b', userId) => {
   try {
-    const response = await aiClient.post('/api/predict', {
+    const response = await aiClient.post('/api/v1/chat', {
+      user_id: userId, 
       message,
-      session_id: sessionId,
-      enable_tts: false  // hoặc true nếu cần TTS
+      session_id: sessionId
+      // enable_tts: false  // hoặc true nếu cần TTS
     });
     console.log("response from chat ai: ", response)
     return {
@@ -76,7 +77,13 @@ export const sendMessage = async (sessionId, message, model = 'qwen-7b') => {
       confidence: response.data.confidence,
       blocked: response.data.blocked,
       warnings: response.data.warnings,
-      sources: response.data.sources || []
+      rag_sources: response.data.rag_sources || [],
+      prompt_tokens: response.data.prompt_tokens,
+      completion_tokens: response.data.completion_tokens,
+      total_tokens: response.data.total_tokens,
+      audio_url: response.data.audio_url,
+      token_remaining: response.data.token_remaining,
+      latency_ms: response.data.latency_ms
     };
   } catch (error) {
     console.error('AI service error:', error.response?.data || error.message);

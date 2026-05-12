@@ -46,10 +46,10 @@ export const sendMessage = async (req, res) => {
       role: 'user', 
       content: message 
     })
-
+    const userId = req.user._id
     // Gọi AI server
     const startTime = Date.now()
-    const aiData = await aiService.sendMessage(conversation.aiSessionId, message, model)
+    const aiData = await aiService.sendMessage(conversation.aiSessionId, message, model, userId)
     console.log("aiDATA: ", sendMessage)
     const latency = `${Date.now() - startTime}ms`
 
@@ -64,8 +64,15 @@ export const sendMessage = async (req, res) => {
       confidence: aiData.confidence,
       blocked: aiData.blocked,
       warnings: aiData.warnings,
-      sources: aiData.sources,
-      latency,
+      sources: aiData.rag_sources,
+      tokens: {
+        prompt_tokens: aiData.prompt_tokens,
+        completion_tokens: aiData.completion_tokens,
+        total_tokens: aiData.total_tokens,
+        token_remaining: aiData.token_remaining
+      },
+      audio_url: aiData.audio_url,
+      latency: aiData.latency_ms
     })
 
     // Cập nhật title nếu là tin nhắn đầu tiên
@@ -84,8 +91,13 @@ export const sendMessage = async (req, res) => {
       confidence: aiData.confidence,
       blocked: aiData.blocked,
       warnings: aiData.warnings,
-      sources: aiData.sources,
-      latency 
+      sources: aiData.rag_sources,
+      prompt_tokens: aiData.prompt_tokens,
+      completion_tokens: aiData.completion_tokens,
+      total_tokens: aiData.total_tokens,
+      audio_url: aiData.audio_url,
+      token_remaining: aiData.token_remaining,
+      latency: aiData.latency_ms
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
