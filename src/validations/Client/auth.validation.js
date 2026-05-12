@@ -12,7 +12,7 @@ const registerClient = async (req, res, next) => {
       'string.empty': 'Email hoặc Số điện thoại không được để trống.'
     }),
     password: Joi.string().min(6).required().messages({
-      'string.min': 'Mật khẩu phải có ít nhất 6 ký tự để bảo mật ạ.',
+      'string.min': 'Mật khẩu phải có ít nhất 6 ký tự để bảo mật',
       'any.required': 'Vui lòng nhập mật khẩu.',
       'string.empty': 'Mật khẩu không được để trống.'
     })

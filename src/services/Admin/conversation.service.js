@@ -1,48 +1,74 @@
+import mongoose from 'mongoose';
 import { ConversationModel } from '../../models/conversation.model.js';
+import { UserModel } from '../../models/user.model.js';
+import searchHelpers from '../../helpers/search.helper.js';
+import paginationHelpers from '../../helpers/pagination.helper.js';
 
-// 1. Lấy danh sách cuộc hội thoại
-const getList = async () => {
-  const conversations = await ConversationModel.find()
+const getList = async (query) => {
+  const find = { deleted: false };
+  const objectSearch = searchHelpers(query);
+
+  if (objectSearch.regex) {
+    const matchingUsers = await UserModel.find({
+      fullName: objectSearch.regex
+    }).select('_id');
+    const userIds = matchingUsers.map(user => user._id);
+
+    const orConditions = [
+      { title: objectSearch.regex },       
+      { userId: { $in: userIds } }        
+    ];
+
+    if (mongoose.Types.ObjectId.isValid(objectSearch.keyword)) {
+      orConditions.push({ _id: objectSearch.keyword }); // Tìm theo ID
+    }
+
+    find.$or = orConditions;
+  }
+
+  // Phân trang
+  const countConversations = await ConversationModel.countDocuments(find);
+  const objectPagination = paginationHelpers(
+    { currentPage: 1, limitItems: 10, skip: 0, totalPage: 0, totalItems: 0 },
+    query,
+    countConversations
+  );
+
+  const conversations = await ConversationModel.find(find)
     .sort({ createdAt: -1 })
-    // populate sẽ lấy thông tin từ bảng User đắp vào trường userId
-    // select: 'fullName email' chỉ lấy đúng 2 trường này của User để data trả về không bị quá nặng
-    .populate({ path: 'userId', select: 'fullName email' }); 
-    
-  return conversations;
+    .skip(objectPagination.skip)
+    .limit(objectPagination.limitItems)
+    .populate({ path: 'userId', select: 'fullName email' })
+    .lean();
+
+  return {
+    conversations,
+    objectSearch,
+    objectPagination
+  };
 };
 
-// 2. Lấy chi tiết 1 cuộc hội thoại
 const getDetail = async (id) => {
-  const conversation = await ConversationModel.findById(id)
+  const conversation = await ConversationModel.findOne({ _id: id, deleted: false })
     .populate({ path: 'userId', select: 'fullName email avatar' });
     
   if (!conversation) {
-    throw new Error('Cuộc hội thoại không tồn tại!');
+    throw new Error('Cuộc hội thoại không tồn tại hoặc đã bị xóa!');
   }
   return conversation;
 };
 
-// 3. Sửa tiêu đề cuộc hội thoại
-const updateConversation = async (id, updateData) => {
-  const updatedConversation = await ConversationModel.findByIdAndUpdate(
-    id,
-    { title: updateData.title },
-    { new: true }
-  ).populate({ path: 'userId', select: 'fullName email' });
-
-  if (!updatedConversation) {
-    throw new Error('Cập nhật thất bại, không tìm thấy cuộc hội thoại!');
-  }
-  return updatedConversation;
-};
-
-// 4. Xóa cuộc hội thoại (Xóa thật - Hard Delete vì bảng này bạn không thiết kế trường deleted)
 const deleteConversation = async (id) => {
-  const result = await ConversationModel.findByIdAndDelete(id);
+  const result = await ConversationModel.findByIdAndUpdate(
+    id, 
+    { deleted: true }, 
+    { new: true }
+  );
+  
   if (!result) {
     throw new Error('Xóa thất bại, không tìm thấy cuộc hội thoại!');
   }
   return result;
 };
 
-export const conversationService = { getList, getDetail, updateConversation, deleteConversation };
+export const conversationService = { getList, getDetail, deleteConversation };

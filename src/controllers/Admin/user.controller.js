@@ -3,8 +3,15 @@ import { userService } from '../../services/Admin/user.service.js';
 
 const getList = async (req, res) => {
   try {
-    const result = await userService.getList(req.query);
-    res.status(StatusCodes.OK).json({ data: result });
+    const { users, objectSearch, objectPagination } = await userService.getList(req.query);
+
+    res.status(StatusCodes.OK).json({
+      code: 200,
+      message: 'Thành công!',
+      users,
+      keyword: objectSearch.keyword,
+      pagination: objectPagination
+    });
   } catch (error) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: error.message });
   }

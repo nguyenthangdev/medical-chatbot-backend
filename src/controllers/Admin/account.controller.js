@@ -3,8 +3,13 @@ import { accountService } from '../../services/Admin/account.service.js';
 
 const getAccounts = async (req, res) => {
   try {
-    const accounts = await accountService.getAccounts();
-    res.status(StatusCodes.OK).json({ accounts });
+    const { accounts, objectSearch, objectPagination } = await accountService.getAccounts(req.query);
+    
+    res.status(StatusCodes.OK).json({ 
+      accounts,
+      keyword: objectSearch.keyword,
+      pagination: objectPagination
+    });
   } catch (error) {
     console.error("Lỗi getAccounts:", error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Lỗi lấy danh sách tài khoản!' });

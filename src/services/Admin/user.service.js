@@ -1,32 +1,45 @@
 import { UserModel } from '../../models/user.model.js';
+import searchHelpers from '../../helpers/search.helper.js';
+import paginationHelpers from '../../helpers/pagination.helper.js';
 
 const getList = async (query) => {
-  const page = parseInt(query.page) || 1;
-  const limit = parseInt(query.limit) || 10;
-  const keyword = query.keyword || '';
-  const skip = (page - 1) * limit;
+  const find = { deleted: false };
 
-  const condition = { deleted: false };
-
-  if (keyword) {
-    condition.$or = [
-      { fullName: { $regex: keyword, $options: 'i' } },
-      { email: { $regex: keyword, $options: 'i' } },
-      { phone: { $regex: keyword, $options: 'i' } }
+  // 1. Search
+  const objectSearch = searchHelpers(query);
+  if (objectSearch.regex) {
+    find.$or = [
+      { fullName: objectSearch.regex },
+      { email: objectSearch.regex },
+      { phone: objectSearch.regex }
     ];
   }
 
-  // Chạy song song 2 lệnh: Lấy data và Đếm tổng số lượng
-  const [users, total] = await Promise.all([
-    UserModel.find(condition).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit),
-    UserModel.countDocuments(condition)
-  ]);
+  // 2. Pagination
+  const countUsers = await UserModel.countDocuments(find);
+  const objectPagination = paginationHelpers(
+    {
+      currentPage: 1,
+      limitItems: 10,
+      skip: 0,
+      totalPage: 0,
+      totalItems: 0
+    },
+    query,
+    countUsers
+  );
+
+  const users = await UserModel.find(find)
+    .select('-password')
+    .sort({ createdAt: -1 })
+    .skip(objectPagination.skip)
+    .limit(objectPagination.limitItems)
+    .lean();
 
   return {
     users,
-    totalItems: total,
-    totalPages: Math.ceil(total / limit),
-    currentPage: page
+    objectSearch,
+    objectPagination
   };
 };
 

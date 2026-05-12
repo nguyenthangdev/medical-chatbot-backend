@@ -3,8 +3,13 @@ import { conversationService } from '../../services/Admin/conversation.service.j
 
 const getList = async (req, res) => {
   try {
-    const conversations = await conversationService.getList();
-    res.status(StatusCodes.OK).json({ data: conversations });
+    const { conversations, objectSearch, objectPagination } = await conversationService.getList(req.query);
+    
+    res.status(StatusCodes.OK).json({ 
+      data: conversations,
+      keyword: objectSearch.keyword,
+      pagination: objectPagination
+    });
   } catch (error) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: error.message });
   }
@@ -19,18 +24,6 @@ const getDetail = async (req, res) => {
   }
 };
 
-const updateConversation = async (req, res) => {
-  try {
-    const updated = await conversationService.updateConversation(req.params.id, req.body);
-    res.status(StatusCodes.OK).json({
-      message: 'Cập nhật tiêu đề thành công',
-      data: updated
-    });
-  } catch (error) {
-    res.status(StatusCodes.BAD_REQUEST).json({ message: error.message });
-  }
-};
-
 const deleteConversation = async (req, res) => {
   try {
     await conversationService.deleteConversation(req.params.id);
@@ -40,4 +33,4 @@ const deleteConversation = async (req, res) => {
   }
 };
 
-export const conversationController = { getList, getDetail, updateConversation, deleteConversation };
+export const conversationController = { getList, getDetail, deleteConversation };

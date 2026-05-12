@@ -1,10 +1,47 @@
 import bcrypt from 'bcrypt';
 import { AccountModel } from '../../models/account.model.js';
+import searchHelpers from '../../helpers/search.helper.js';
+import paginationHelpers from '../../helpers/pagination.helper.js';
 
-const getAccounts = async () => {
-  return await AccountModel.find({ deleted: false })
+const getAccounts = async (query) => {
+  const find = { deleted: false };
+
+  // 1. Search (Tìm kiếm theo tên và email)
+  const objectSearch = searchHelpers(query);
+  if (objectSearch.regex) {
+    find.$or = [
+      { fullName: objectSearch.regex },
+      { email: objectSearch.regex }
+    ];
+  }
+
+  // 2. Pagination
+  const countAccounts = await AccountModel.countDocuments(find);
+  const objectPagination = paginationHelpers(
+    {
+      currentPage: 1,
+      limitItems: 10,
+      skip: 0,
+      totalPage: 0,
+      totalItems: 0
+    },
+    query,
+    countAccounts
+  );
+
+  // 3. Query DB
+  const accounts = await AccountModel.find(find)
     .select('-password')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(objectPagination.skip)
+    .limit(objectPagination.limitItems)
+    .lean();
+
+  return {
+    accounts,
+    objectSearch,
+    objectPagination
+  };
 };
 
 const createAccount = async (data) => {

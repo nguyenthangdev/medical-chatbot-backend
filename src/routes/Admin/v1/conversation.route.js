@@ -9,7 +9,6 @@ Router.route('/')
 
 Router.route('/:id')
   .get(conversationController.getDetail)
-  .patch(conversationValidation.updateConversation, conversationController.updateConversation)
   .delete(conversationController.deleteConversation);
 
 export const conversationRoute = Router;

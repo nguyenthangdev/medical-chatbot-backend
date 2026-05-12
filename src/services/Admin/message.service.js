@@ -1,33 +1,82 @@
+import mongoose from 'mongoose';
 import { MessageModel } from '../../models/message.model.js';
 import { ConversationModel } from '../../models/conversation.model.js';
+import searchHelpers from '../../helpers/search.helper.js';
+import paginationHelpers from '../../helpers/pagination.helper.js';
 
-// 1. Tạo tin nhắn mới
 const createMessage = async (data) => {
-  // Kiểm tra xem conversationId có tồn tại trong DB không trước khi lưu tin nhắn
   const conversationExist = await ConversationModel.findById(data.conversationId);
   if (!conversationExist) {
     throw new Error('Đoạn chat không tồn tại!');
   }
-
-  const newMessage = await MessageModel.create(data);
-  return newMessage;
+  return await MessageModel.create(data);
 };
 
-// 2. Lấy danh sách tin nhắn CỦA MỘT ĐOẠN CHAT (Sắp xếp cũ nhất -> mới nhất giống giao diện chat)
 const getMessagesByConversation = async (conversationId) => {
-  const messages = await MessageModel.find({ conversationId: conversationId })
-    .sort({ createdAt: 1 }); // 1 là tăng dần (cũ đến mới)
-    
-  return messages;
+  return await MessageModel.find({ conversationId: conversationId, deleted: false })
+    .sort({ createdAt: 1 });
 };
 
-// 3. Xóa một tin nhắn (Dành cho Admin nếu cần dọn dẹp)
+const getAllMessages = async (query) => {
+  const find = { deleted: false };
+  const objectSearch = searchHelpers(query);
+
+  if (query.conversationId && mongoose.Types.ObjectId.isValid(query.conversationId)) {
+    find.conversationId = query.conversationId;
+  }
+
+  if (objectSearch.keyword) {
+    if (mongoose.Types.ObjectId.isValid(objectSearch.keyword)) {
+      find.$or = [
+        { _id: objectSearch.keyword },
+        { conversationId: objectSearch.keyword }
+      ];
+    } else {
+      find._id = null; 
+    }
+  }
+
+  // Phân trang
+  const countMessages = await MessageModel.countDocuments(find);
+  const objectPagination = paginationHelpers(
+    { currentPage: 1, limitItems: 10, skip: 0, totalPage: 0, totalItems: 0 },
+    query,
+    countMessages
+  );
+
+  const messages = await MessageModel.find(find)
+    .sort({ createdAt: -1 }) 
+    .skip(objectPagination.skip)
+    .limit(objectPagination.limitItems)
+    .lean();
+
+  return { messages, objectSearch, objectPagination };
+};
+
+const getMessageDetail = async (messageId) => {
+  const message = await MessageModel.findOne({ _id: messageId, deleted: false }).lean();
+  if (!message) {
+    throw new Error('Tin nhắn không tồn tại hoặc đã bị xóa!');
+  }
+  return message;
+};
+
 const deleteMessage = async (messageId) => {
-  const deletedMessage = await MessageModel.findByIdAndDelete(messageId);
+  const deletedMessage = await MessageModel.findByIdAndUpdate(
+    messageId,
+    { deleted: true },
+    { new: true }
+  );
   if (!deletedMessage) {
     throw new Error('Tin nhắn không tồn tại!');
   }
   return deletedMessage;
 };
 
-export const messageService = { createMessage, getMessagesByConversation, deleteMessage };
+export const messageService = { 
+  createMessage, 
+  getMessagesByConversation, 
+  getAllMessages,
+  getMessageDetail,
+  deleteMessage 
+};
