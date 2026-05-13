@@ -1,24 +1,19 @@
 import express from 'express'
-import {
-  createConversation,
-  sendMessage,
-  getConversations,
-  getMessages,
-  deleteConversation,
-  sttController,
-  ttsController
-} from '../../../controllers/Client/chat.controller.js'
+
+import { chatController } from '../../../controllers/Client/chat.controller.js'
 import multer from 'multer'
 const upload = multer()
 
 const Router = express.Router()
 
-Router.post('/conversation', createConversation)
-Router.post('/message', sendMessage)
-Router.get('/conversations/:userId', getConversations)
-Router.get('/messages/:conversationId', getMessages)
-Router.delete('/conversation/:conversationId', deleteConversation)
+Router.post('/conversation', chatController.createConversation)
+Router.post('/message', chatController.sendMessage)
+Router.get('/conversations/:userId', chatController.getConversations)
+Router.get('/messages/:conversationId', chatController.getMessages)
+Router.delete('/conversation/:conversationId', chatController.deleteConversation)
+Router.post('/message-stream', chatController.streamMessage)
 
-Router.post('/stt', upload.single('file'), sttController)
-Router.post('/tts', ttsController);
+Router.post('/stt', upload.single('file'), chatController.sttController)
+Router.post('/tts', chatController.ttsController);
+
 export const chatRoute = Router;

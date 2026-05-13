@@ -1,6 +1,7 @@
-import * as aiService from '../../services/Client/ai.service.js'
+import { chatClientService } from '../../services/Client/ai.service.js'
 import { ConversationModel } from '../../models/conversation.model.js'
 import { MessageModel } from '../../models/message.model.js'
+import { createSession, aiClient } from '../../services/Client/ai.service.js'
 
 // POST /api/v1/chat/conversation — Tạo conversation mới
 export const createConversation = async (req, res) => {
@@ -9,7 +10,7 @@ export const createConversation = async (req, res) => {
     console.log("reqBody: ", req.body)
     if (!userId) return res.status(400).json({ error: 'userId là bắt buộc' })
 
-    const aiData = await aiService.createSession(userId, model)
+    const aiData = await createSession(userId, model)
     console.log("aiData: ",aiData)
     const conversation = await ConversationModel.create({
       userId,
@@ -49,7 +50,7 @@ export const sendMessage = async (req, res) => {
     const userId = req.user._id
     // Gọi AI server
     const startTime = Date.now()
-    const aiData = await aiService.sendMessage(conversation.aiSessionId, message, model, userId)
+    const aiData = await chatClientService.sendMessage(conversation.aiSessionId, message, model, userId)
     console.log("aiDATA: ", sendMessage)
     const latency = `${Date.now() - startTime}ms`
 
@@ -165,4 +166,51 @@ export const ttsController = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'TTS failed' });
   }
+};
+
+// POST /api/v1/chat/message-stream
+export const streamMessage = async (req, res) => {
+  console.log("req.body from streamMessage: ", req.body)
+  const { conversationId, message, model = 'qwen-7b' } = req.body;
+  
+  // Giả định bạn có middleware xác thực nhét thông tin user vào req.user
+  const userId = req.user?._id; 
+  console.log("userId from streamMessage: ", userId)
+  // 1. Bật công tắc Header SSE (Server-Sent Events)
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders(); 
+
+  // 2. Giao việc cho Service
+  await chatClientService.streamMessageFromAI(
+    userId,
+    conversationId,
+    message,
+    model,
+    // Callback 1: Có chữ mới -> Write xuống Frontend
+    (chunk) => {
+      res.write(chunk);
+    },
+    // Callback 2: Khi AI nói xong -> Đóng kết nối
+    () => {
+      res.end();
+    },
+    // Callback 3: Lỗi thì báo lỗi
+    (error) => {
+      res.write(`data: [ERROR]\n\n`);
+      res.end();
+    }
+  );
+};
+
+export const chatController = {
+  createConversation,
+  sendMessage,
+  getConversations,
+  getMessages,
+  deleteConversation,
+  sttController,
+  ttsController,
+  streamMessage
 };

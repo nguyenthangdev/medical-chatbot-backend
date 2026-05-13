@@ -1,5 +1,5 @@
 import axios from "axios";
-
+import { MessageModel } from '../../models/message.model.js'; // Nhớ check lại đường dẫn cho chuẩn với cấu trúc thư mục của bạn nhé
 
 // ─── Mock data phản hồi theo từ khóa ────────────────────────────────
 // const mockResponses = [
@@ -135,3 +135,67 @@ export const speechToText = async (audioBlob) => {
   ]
   return mockTexts[Math.floor(Math.random() * mockTexts.length)]
 }
+
+export const streamMessageFromAI = async (userId, conversationId, message, model, onChunk, onEnd, onError) => {
+  try {
+    const aiResponse = await aiClient.post('/api/v1/chat', {
+        user_id: userId,
+        session_id: conversationId,
+        message: message,
+        stream: true
+    }, {
+        responseType: 'stream' // <--- Nhớ kẹp thêm cái option stream này
+    });
+
+    let fullAnswer = "";
+    let buffer = ""; // Dùng buffer để đề phòng gói tin bị cắt làm đôi khi truyền qua mạng
+    aiResponse.data.setEncoding('utf8');
+    aiResponse.data.on('data', (chunk) => {
+      // const chunkStr = chunk.toString('utf8');
+      
+      // 1. Bắn trực tiếp gói tin gốc (data: ... \n\n) xuống cho Controller đẩy về React
+      onChunk(chunk);
+
+      // 2. Gom vào buffer để Backend bóc tách và lưu Database
+      buffer += chunk;
+      const parts = buffer.split('\n\n');
+      
+      // Giữ lại phần tử cuối cùng (có thể là một gói tin bị đứt dở) trong buffer
+      buffer = parts.pop(); 
+
+      for (const part of parts) {
+        if (part.startsWith('data: ')) {
+          const token = part.slice(6); // Cắt bỏ chữ "data: "
+          if (token !== '[DONE]') {
+            fullAnswer += token; // Ghép dần các chữ cái thành câu hoàn chỉnh
+          }
+        }
+      }
+    });
+
+    aiResponse.data.on('end', async () => {
+      // Xử lý nốt chữ cuối cùng nếu còn sót lại trong buffer
+      if (buffer.startsWith('data: ')) {
+         const token = buffer.slice(6);
+         if (token !== '[DONE]') fullAnswer += token;
+      }
+
+      // 3. Tự động lưu tin nhắn vào Database khi đã nói xong
+      await MessageModel.create({
+        conversationId,
+        role: 'assistant',
+        content: fullAnswer,
+        model: model
+      });
+
+      // 4. Báo cho Controller biết luồng đã kết thúc
+      onEnd();
+    });
+
+  } catch (error) {
+    console.error("Lỗi stream AI chi tiết:", error.response?.data || error.message);
+    onError(error);
+  }
+};
+
+export const chatClientService = { streamMessageFromAI, sendMessage };
