@@ -3,7 +3,6 @@ import { ConversationModel } from '../../models/conversation.model.js'
 import { MessageModel } from '../../models/message.model.js'
 import { createSession, aiClient } from '../../services/Client/ai.service.js'
 
-// POST /api/v1/chat/conversation — Tạo conversation mới
 export const createConversation = async (req, res) => {
   try {
     const { userId, model = 'qwen-7b' } = req.body
@@ -28,7 +27,6 @@ export const createConversation = async (req, res) => {
   }
 }
 
-// POST /api/v1/chat/message — Gửi tin nhắn, lưu cả 2 chiều vào DB
 export const sendMessage = async (req, res) => {
   try {
     const { conversationId, message, model = 'qwen-7b' } = req.body
@@ -36,19 +34,17 @@ export const sendMessage = async (req, res) => {
       return res.status(400).json({ error: 'conversationId và message là bắt buộc' })
 
     const conversation = await ConversationModel.findById(conversationId)
-        console.log('💬 Conversation found:', conversation) // ← thêm dòng này
+        console.log('💬 Conversation found:', conversation) 
 
     if (!conversation)
       return res.status(404).json({ error: 'Không tìm thấy conversation' })
 
-    // Lưu tin nhắn user
     await MessageModel.create({ 
       conversationId, 
       role: 'user', 
       content: message 
     })
     const userId = req.user._id
-    // Gọi AI server
     const startTime = Date.now()
     const aiData = await chatClientService.sendMessage(conversation.aiSessionId, message, model, userId)
     console.log("aiDATA: ", sendMessage)
@@ -105,7 +101,6 @@ export const sendMessage = async (req, res) => {
   }
 }
 
-// GET /api/v1/chat/conversations/:userId — Danh sách conversations (sidebar)
 export const getConversations = async (req, res) => {
   try {
     const { userId } = req.params
@@ -116,7 +111,6 @@ export const getConversations = async (req, res) => {
   }
 }
 
-// GET /api/v1/chat/messages/:conversationId — Lịch sử messages
 export const getMessages = async (req, res) => {
   try {
     const { conversationId } = req.params
@@ -127,7 +121,6 @@ export const getMessages = async (req, res) => {
   }
 }
 
-// DELETE /api/v1/chat/conversation/:conversationId — Xóa conversation + messages
 export const deleteConversation = async (req, res) => {
   try {
     const { conversationId } = req.params
@@ -139,7 +132,6 @@ export const deleteConversation = async (req, res) => {
   }
 }
 
-// Thêm vào cuối chat.controller.js
 export const sttController = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -176,13 +168,13 @@ export const streamMessage = async (req, res) => {
   // Giả định bạn có middleware xác thực nhét thông tin user vào req.user
   const userId = req.user?._id; 
   console.log("userId from streamMessage: ", userId)
-  // 1. Bật công tắc Header SSE (Server-Sent Events)
+  // Bật công tắc Header SSE (Server-Sent Events)
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders(); 
 
-  // 2. Giao việc cho Service
+  // Giao việc cho Service
   await chatClientService.streamMessageFromAI(
     userId,
     conversationId,
