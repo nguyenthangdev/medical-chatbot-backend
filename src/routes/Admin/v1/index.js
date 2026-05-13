@@ -7,6 +7,7 @@ import { messageRoute } from './message.route.js';
 import { requireAuth } from '../../../middlewares/Admin/auth.middleware.js';
 import { accountRoute } from './account.route.js';
 import { uploadRoute } from '../../General/upload.route.js';
+import { settingRoute } from './setting.route.js'
 
 const Router = express.Router();
 
@@ -17,5 +18,6 @@ Router.use('/conversations', requireAuth, conversationRoute);
 Router.use('/messages', requireAuth, messageRoute);
 Router.use('/accounts', requireAuth, accountRoute);
 Router.use('/upload', uploadRoute);
+Router.use('/settings', requireAuth, settingRoute)
 
 export const APIs_V1 = Router;

@@ -14,7 +14,7 @@ export const createSession = async (userId, model = 'qwen-7b') => {
   return { session_id: `session_${userId}_${Date.now()}` };
 };
 
-export const sendMessage = async (sessionId, message, model = 'qwen-7b', userId) => {
+export const sendMessage = async (sessionId, message, model = 'qwen-7b', userId, maxTokensLimit) => {
   try {
     const response = await aiClient.post('/api/v1/chat', {
       user_id: userId, 

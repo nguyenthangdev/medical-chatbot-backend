@@ -2,6 +2,8 @@ import { chatClientService } from '../../services/Client/ai.service.js'
 import { ConversationModel } from '../../models/conversation.model.js'
 import { MessageModel } from '../../models/message.model.js'
 import { createSession, aiClient } from '../../services/Client/ai.service.js'
+import { SettingModel } from "../../models/setting.model.js"
+import mongoose from 'mongoose'
 
 export const createConversation = async (req, res) => {
   try {
@@ -30,26 +32,42 @@ export const createConversation = async (req, res) => {
 export const sendMessage = async (req, res) => {
   try {
     const { conversationId, message, model = 'qwen-7b' } = req.body
-    if (!conversationId || !message)
-      return res.status(400).json({ error: 'conversationId và message là bắt buộc' })
+    if (!conversationId || !message) return res.status(400).json({ error: 'Thiếu dữ liệu' })
 
     const conversation = await ConversationModel.findById(conversationId)
-        console.log('💬 Conversation found:', conversation) 
+    if (!conversation) return res.status(404).json({ error: 'Không tìm thấy conversation' })
 
-    if (!conversation)
-      return res.status(404).json({ error: 'Không tìm thấy conversation' })
+    const baseModelName = model.split('-')[0].toLowerCase(); 
+    const config = await SettingModel.findOne({ modelName: baseModelName });
+    const maxTokensLimit = config ? config.maxTokens : 2000;
+    const isMaintenance = config ? config.maintenanceMode : false;
 
+    if (isMaintenance) {
+      return res.json({ response: `⚠️ **Bảo trì:** Mô hình ${baseModelName.toUpperCase()} đang được bảo trì.` });
+    }
+    // const lastMessage = await MessageModel.findOne({ conversationId }).sort({ createdAt: -1 });
+    // const currentUsedTokens = lastMessage?.tokens?.token_remaining || 0;
+    const result = await MessageModel.aggregate([
+      { $match: { conversationId: new mongoose.Types.ObjectId(conversationId), role: 'assistant' } },
+      { $group: { _id: null, totalUsed: { $sum: "$tokens.total_tokens" } } }
+    ]);
+    const currentUsedTokens = result[0]?.totalUsed || 0;
+
+    if (currentUsedTokens >= maxTokensLimit) {
+      return res.json({ 
+        response: `🚫 **Hết hạn mức:** Phiên này đã hết hạn sử dụng. Hãy tạo cuộc hội thoại mới.` 
+      });
+    }
     await MessageModel.create({ 
       conversationId, 
       role: 'user', 
       content: message 
-    })
+    });
+    await ConversationModel.findByIdAndUpdate(conversationId, {
+      title: message.substring(0, 40) + (message.length > 40 ? '...' : ''),
+    });
     const userId = req.user._id
-    const startTime = Date.now()
-    const aiData = await chatClientService.sendMessage(conversation.aiSessionId, message, model, userId)
-    console.log("aiDATA: ", sendMessage)
-    const latency = `${Date.now() - startTime}ms`
-
+    const aiData = await chatClientService.sendMessage(conversation.aiSessionId, message, model, userId, maxTokensLimit)
     // Lưu phản hồi AI
     await MessageModel.create({
       conversationId,
@@ -71,6 +89,7 @@ export const sendMessage = async (req, res) => {
       audio_url: aiData.audio_url,
       latency: aiData.latency_ms
     })
+    
 
     // Cập nhật title nếu là tin nhắn đầu tiên
     const count = await MessageModel.countDocuments({ conversationId })
@@ -104,7 +123,10 @@ export const sendMessage = async (req, res) => {
 export const getConversations = async (req, res) => {
   try {
     const { userId } = req.params
-    const conversations = await ConversationModel.find({ userId }).sort({ updatedAt: -1 }).lean()
+    const conversations = await ConversationModel.find({ 
+      userId, 
+      deleted: { $ne: true } 
+    }).sort({ updatedAt: -1 }).lean()
     res.json(conversations)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -114,7 +136,10 @@ export const getConversations = async (req, res) => {
 export const getMessages = async (req, res) => {
   try {
     const { conversationId } = req.params
-    const messages = await MessageModel.find({ conversationId }).sort({ createdAt: 1 }).lean()
+    const messages = await MessageModel.find({ 
+      conversationId,
+      deleted: { $ne: true } 
+    }).sort({ createdAt: 1 }).lean()
     res.json(messages)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -124,13 +149,39 @@ export const getMessages = async (req, res) => {
 export const deleteConversation = async (req, res) => {
   try {
     const { conversationId } = req.params
-    await MessageModel.deleteMany({ conversationId })
-    await ConversationModel.findByIdAndDelete(conversationId)
-    res.json({ message: 'Đã xóa conversation' })
+    await ConversationModel.findByIdAndUpdate(conversationId, { deleted: true })
+    await MessageModel.updateMany({ conversationId }, { deleted: true })
+    res.json({ message: 'Đã xóa thành công hội thoại' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 }
+
+export const renameConversation = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { title } = req.body;
+    await ConversationModel.findByIdAndUpdate(conversationId, { title });
+    res.json({ message: 'Đã đổi tên thành công' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const deleteAllConversations = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const conversations = await ConversationModel.find({ userId });
+    const convIds = conversations.map(c => c._id);
+    
+    await ConversationModel.updateMany({ userId }, { deleted: true });
+    await MessageModel.updateMany({ conversationId: { $in: convIds } }, { deleted: true });
+    
+    res.json({ message: 'Đã xóa thành công toàn bộ lịch sử  tin nhắn'  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 export const sttController = async (req, res) => {
   try {
@@ -204,5 +255,7 @@ export const chatController = {
   deleteConversation,
   sttController,
   ttsController,
-  streamMessage
+  streamMessage,
+  renameConversation,
+  deleteAllConversations
 };

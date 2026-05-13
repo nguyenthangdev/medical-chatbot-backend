@@ -10,7 +10,12 @@ Router.post('/conversation', chatController.createConversation)
 Router.post('/message', chatController.sendMessage)
 Router.get('/conversations/:userId', chatController.getConversations)
 Router.get('/messages/:conversationId', chatController.getMessages)
-Router.delete('/conversation/:conversationId', chatController.deleteConversation)
+
+Router.route('/conversation/:conversationId')
+  .delete(chatController.deleteConversation)
+  .put(chatController.renameConversation)
+
+Router.delete('/conversations/all', chatController.deleteAllConversations)
 Router.post('/message-stream', chatController.streamMessage)
 
 Router.post('/stt', upload.single('file'), chatController.sttController)
