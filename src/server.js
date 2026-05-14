@@ -5,8 +5,10 @@ import { APIs_V1 as adminRoutes } from './routes/Admin/v1/index.js';
 import { APIs_V1 as clientRoutes } from './routes/Client/v1/index.js';
 import cookieParser from 'cookie-parser';
 import * as database from './config/database.js';
+import { roleController } from "./controllers/Admin/role.controller.js"
 
 database.connect();
+roleController.seedAdminRole();
 
 const app = express();
 const port = process.env.PORT;

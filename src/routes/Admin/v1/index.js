@@ -8,7 +8,7 @@ import { requireAuth } from '../../../middlewares/Admin/auth.middleware.js';
 import { accountRoute } from './account.route.js';
 import { uploadRoute } from '../../General/upload.route.js';
 import { settingRoute } from './setting.route.js'
-
+import { roleRoutes } from "./role.route.js"
 const Router = express.Router();
 
 Router.use('/auth', authRoute); 
@@ -19,5 +19,6 @@ Router.use('/messages', requireAuth, messageRoute);
 Router.use('/accounts', requireAuth, accountRoute);
 Router.use('/upload', uploadRoute);
 Router.use('/settings', requireAuth, settingRoute)
-
+Router.use('/roles', requireAuth, roleRoutes)
+  
 export const APIs_V1 = Router;
