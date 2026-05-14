@@ -1,5 +1,6 @@
 import axios from "axios";
 import { MessageModel } from '../../models/message.model.js'; 
+import { ConversationModel } from "../../models/conversation.model.js"
 
 export const aiClient = axios.create({
   baseURL: process.env.AI_SERVER_URL || "http://localhost:8000",
@@ -7,7 +8,7 @@ export const aiClient = axios.create({
     "Content-Type": "application/json",
     "X-API-Key": process.env.AI_API_KEY || "key-webapp-abc123"
   },
-  timeout: 60000, // AI xử lý lâu nên để 60s
+  timeout: 120000, // AI xử lý lâu nên để 2p
 });
 
 export const createSession = async (userId, model = 'qwen-7b') => {
@@ -150,4 +151,30 @@ export const streamMessageFromAI = async (userId, conversationId, message, model
   }
 };
 
-export const chatClientService = { streamMessageFromAI, sendMessage };
+const deleteConversation = async (conversationId) => {
+  await ConversationModel.findByIdAndUpdate(conversationId, { status: 'inactive' });
+  await MessageModel.updateMany({ conversationId }, { status: 'inactive' });
+  return true;
+};
+
+const renameConversation = async (conversationId, title) => {
+  await ConversationModel.findByIdAndUpdate(conversationId, { title });
+  return true;
+};
+
+const deleteAllConversations = async (userId) => {
+  const conversations = await ConversationModel.find({ userId });
+  const convIds = conversations.map(c => c._id);
+  
+  await ConversationModel.updateMany({ userId }, { status: 'inactive' });
+  await MessageModel.updateMany({ conversationId: { $in: convIds } }, { status: 'inactive' });
+  return true;
+};
+
+export const chatClientService = { 
+  streamMessageFromAI, 
+  sendMessage, 
+  deleteConversation, 
+  renameConversation, 
+  deleteAllConversations 
+};

@@ -14,11 +14,12 @@ Router.route('/')
 Router.route('/conversation/:conversationId')
   .get(messageController.getByConversation);
 
+Router.route('/:id/toggle')
+  .put(messageController.toggleMessage)
+
 // Xóa tin nhắn theo ID
 Router.route('/:id')
-  .delete(messageController.deleteMessage);
-
-Router.route('/:id')
+  .delete(messageController.deleteMessage)
   .get(messageController.getDetail);
   
 export const messageRoute = Router;

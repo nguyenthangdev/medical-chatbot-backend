@@ -5,7 +5,7 @@ import { createSession, aiClient } from '../../services/Client/ai.service.js'
 import { SettingModel } from "../../models/setting.model.js"
 import mongoose from 'mongoose'
 
-export const createConversation = async (req, res) => {
+const createConversation = async (req, res) => {
   try {
     const { userId, model = 'qwen-7b' } = req.body
     console.log("reqBody: ", req.body)
@@ -29,7 +29,7 @@ export const createConversation = async (req, res) => {
   }
 }
 
-export const sendMessage = async (req, res) => {
+const sendMessage = async (req, res) => {
   try {
     const { conversationId, message, model = 'qwen-7b' } = req.body
     if (!conversationId || !message) return res.status(400).json({ error: 'Thiếu dữ liệu' })
@@ -120,12 +120,13 @@ export const sendMessage = async (req, res) => {
   }
 }
 
-export const getConversations = async (req, res) => {
+const getConversations = async (req, res) => {
   try {
     const { userId } = req.params
     const conversations = await ConversationModel.find({ 
       userId, 
-      deleted: { $ne: true } 
+      deleted: { $ne: true },
+      status: { $ne: 'inactive' }
     }).sort({ updatedAt: -1 }).lean()
     res.json(conversations)
   } catch (err) {
@@ -133,12 +134,13 @@ export const getConversations = async (req, res) => {
   }
 }
 
-export const getMessages = async (req, res) => {
+const getMessages = async (req, res) => {
   try {
     const { conversationId } = req.params
     const messages = await MessageModel.find({ 
       conversationId,
-      deleted: { $ne: true } 
+      deleted: { $ne: true },
+      status: { $ne: 'inactive' }
     }).sort({ createdAt: 1 }).lean()
     res.json(messages)
   } catch (err) {
@@ -146,53 +148,46 @@ export const getMessages = async (req, res) => {
   }
 }
 
-export const deleteConversation = async (req, res) => {
+const deleteConversation = async (req, res) => {
   try {
     const { conversationId } = req.params
-    await ConversationModel.findByIdAndUpdate(conversationId, { deleted: true })
-    await MessageModel.updateMany({ conversationId }, { deleted: true })
-    res.json({ message: 'Đã xóa thành công hội thoại' })
+    await chatClientService.deleteConversation(conversationId)
+    res.json({ code: 200, message: 'Đã xóa thành công hội thoại' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 }
 
-export const renameConversation = async (req, res) => {
+const renameConversation = async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { title } = req.body;
-    await ConversationModel.findByIdAndUpdate(conversationId, { title });
-    res.json({ message: 'Đã đổi tên thành công' });
+    await chatClientService.renameConversation(conversationId, title);
+    res.json({ code: 200, message: 'Đã đổi tên thành công' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-export const deleteAllConversations = async (req, res) => {
+const deleteAllConversations = async (req, res) => {
   try {
     const userId = req.user._id;
-    const conversations = await ConversationModel.find({ userId });
-    const convIds = conversations.map(c => c._id);
-    
-    await ConversationModel.updateMany({ userId }, { deleted: true });
-    await MessageModel.updateMany({ conversationId: { $in: convIds } }, { deleted: true });
-    
-    res.json({ message: 'Đã xóa thành công toàn bộ lịch sử  tin nhắn'  });
+    await chatClientService.deleteAllConversations(userId);
+    res.json({ code: 200, message: 'Đã xóa thành công toàn bộ lịch sử tin nhắn'  });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-export const sttController = async (req, res) => {
+const sttController = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     
     const formData = new FormData();
-    formData.append('file', req.file.buffer, { filename: req.file.originalname });
+    const audioBlob = new Blob([req.file.buffer], { type: req.file.mimetype || 'audio/webm' });
+    formData.append('file', audioBlob, req.file.originalname || 'audio.webm');
     
-    const response = await aiClient.post('/api/stt', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const response = await aiClient.post('/api/stt', formData);
     
     res.json({ text: response.data.text });
   } catch (error) {
@@ -200,19 +195,27 @@ export const sttController = async (req, res) => {
   }
 };
 
-export const ttsController = async (req, res) => {
+const ttsController = async (req, res) => {
   try {
     const { text } = req.body;
-    const response = await aiClient.post('/api/tts', { text }, { responseType: 'blob' });
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.send(response.data);
+    if (!text?.trim()) return res.status(400).json({ error: 'Text is required' });
+
+    const response = await aiClient.post('/api/tts', null, {
+      params: { text }
+    });
+    const audioUrl = response.data?.audio_url;
+    const aiServerUrl = process.env.AI_SERVER_URL || "http://localhost:8000";
+
+    res.json({
+      audio_url: audioUrl?.startsWith('http') ? audioUrl : `${aiServerUrl}${audioUrl}`
+    });
   } catch (error) {
-    res.status(500).json({ error: 'TTS failed' });
+    res.status(500).json({ error: 'TTS failed', details: error.response?.data || error.message });
   }
 };
 
 // POST /api/v1/chat/message-stream
-export const streamMessage = async (req, res) => {
+const streamMessage = async (req, res) => {
   console.log("req.body from streamMessage: ", req.body)
   const { conversationId, message, model = 'qwen-7b' } = req.body;
   

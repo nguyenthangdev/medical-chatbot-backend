@@ -16,15 +16,19 @@ const conversationSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    // model đang dùng trong conversation này
     model: {
       type: String,
       default: 'qwen-7b',
     },
-    deleted: { type: Boolean, default: false }
+    deleted: { type: Boolean, default: false },
+    status: {
+      type: String,
+      enum: ['active', 'inactive'],
+      default: 'active',
+    }
   },
   {
-    timestamps: true, // tự tạo createdAt, updatedAt
+    timestamps: true,
   }
 )
 

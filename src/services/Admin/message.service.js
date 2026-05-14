@@ -73,10 +73,20 @@ const deleteMessage = async (messageId) => {
   return deletedMessage;
 };
 
+const toggleMessageStatus = async (messageId) => {
+  const msg = await MessageModel.findById(messageId);
+  if (!msg) throw new Error("Không tìm thấy tin nhắn");
+  
+  msg.status = msg.status === 'active' ? 'inactive' : 'active';
+  await msg.save();
+  return msg;
+};
+
 export const messageService = { 
   createMessage, 
   getMessagesByConversation, 
   getAllMessages,
   getMessageDetail,
-  deleteMessage 
+  deleteMessage,
+  toggleMessageStatus
 };

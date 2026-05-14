@@ -1,7 +1,7 @@
 import { AccountModel } from '../../models/account.model.js';
 
 const getMyProfile = async (accountId) => {
-  const account = await AccountModel.findById(accountId);
+  const account = await AccountModel.findOne({ _id: accountId, deleted: false }).select('-password').lean();
   if (!account || account.deleted) {
     throw new Error('Tài khoản không tồn tại hoặc đã bị khóa!');
   }

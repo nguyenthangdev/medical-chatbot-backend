@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { authServices } from '../../services/Admin/auth.service.js';
 import { getCookieOptions } from '../../utils/constants.js'
 
-export const registerAdmin = async (req, res) => {
+const registerAdmin = async (req, res) => {
   try {
     const result = await authServices.registerAdmin(req.body);
     if (!result.success) {
@@ -18,7 +18,7 @@ export const registerAdmin = async (req, res) => {
   }
 };
 
-export const loginAdmin = async (req, res) => {
+const loginAdmin = async (req, res) => {
   try {
     const result = await authServices.loginAdmin(req.body);
     if (!result.success) {
@@ -40,7 +40,7 @@ export const loginAdmin = async (req, res) => {
   }
 };
 
-export const refreshToken = async (req, res) => {
+const refreshToken = async (req, res) => {
   try {
     const currentRefreshToken = req.cookies.refreshToken;
     const result = await authServices.refreshTokenAdmin(currentRefreshToken);
@@ -58,7 +58,7 @@ export const refreshToken = async (req, res) => {
   }
 };
 
-export const logout = async (req, res) => {
+const logout = async (req, res) => {
   try {
     res.clearCookie('accessToken', getCookieOptions('1h'));
     res.clearCookie('refreshToken', getCookieOptions('14d'));

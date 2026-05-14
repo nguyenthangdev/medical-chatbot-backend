@@ -53,4 +53,21 @@ const deleteMessage = async (req, res) => {
   }
 };
 
-export const messageController = { createMessage, getByConversation, getAllMessages, getDetail, deleteMessage };
+const toggleMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await messageService.toggleMessageStatus(id);
+    res.json({ message: "Đã cập nhật trạng thái", data: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const messageController = { 
+  createMessage, 
+  getByConversation, 
+  getAllMessages, 
+  getDetail, 
+  deleteMessage,
+  toggleMessage
+};

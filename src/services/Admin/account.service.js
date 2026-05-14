@@ -94,7 +94,7 @@ const deleteAccount = async (id, currentAdminId) => {
 };
 
 const getAccountById = async (id) => {
-  const account = await AccountModel.findById(id).select('-password');
+  const account = await AccountModel.findOne({ _id: id, deleted: false }).select('-password');
   if (!account || account.deleted) {
     throw new Error('ACCOUNT_NOT_FOUND');
   }

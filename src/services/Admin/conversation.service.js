@@ -3,6 +3,7 @@ import { ConversationModel } from '../../models/conversation.model.js';
 import { UserModel } from '../../models/user.model.js';
 import searchHelpers from '../../helpers/search.helper.js';
 import paginationHelpers from '../../helpers/pagination.helper.js';
+import { MessageModel } from "../../models/message.model.js"
 
 const getList = async (query) => {
   const find = { deleted: false };
@@ -71,4 +72,21 @@ const deleteConversation = async (id) => {
   return result;
 };
 
-export const conversationService = { getList, getDetail, deleteConversation };
+const toggleConversationStatus = async (conversationId) => {
+  const conv = await ConversationModel.findById(conversationId);
+  if (!conv) throw new Error("Không tìm thấy cuộc hội thoại");
+  
+  conv.status = conv.status === 'active' ? 'inactive' : 'active';
+  await conv.save();
+
+  await MessageModel.updateMany({ conversationId }, { status: conv.status });
+
+  return conv;
+};
+
+export const conversationService = { 
+  getList, 
+  getDetail, 
+  deleteConversation, 
+  toggleConversationStatus 
+};

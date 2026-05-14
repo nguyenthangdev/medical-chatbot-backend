@@ -33,4 +33,19 @@ const deleteConversation = async (req, res) => {
   }
 };
 
-export const conversationController = { getList, getDetail, deleteConversation };
+const toggleConversation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await conversationService.toggleConversationStatus(id);
+    res.json({ message: "Đã cập nhật trạng thái", data: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const conversationController = { 
+  getList, 
+  getDetail, 
+  deleteConversation, 
+  toggleConversation 
+};
