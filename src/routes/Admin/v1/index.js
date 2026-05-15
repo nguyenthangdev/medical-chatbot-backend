@@ -8,6 +8,7 @@ import { accountRoute } from './account.route.js';
 import { uploadRoute } from '../../General/upload.route.js';
 import { settingRoute } from './setting.route.js';
 import { roleRoutes } from "./role.route.js";
+import { biRoute } from './bi.route.js';
 
 import { requireAuth } from '../../../middlewares/Admin/auth.middleware.js';
 import { requirePermission } from '../../../middlewares/Admin/role.middleware.js'; 
@@ -27,5 +28,6 @@ Router.use('/accounts', requireAuth, requirePermission('accounts_view'), account
 Router.use('/upload', uploadRoute);
 Router.use('/settings', requireAuth, requirePermission('settings_edit'), settingRoute);
 Router.use('/roles', requireAuth, requirePermission('roles_view'), roleRoutes);
+Router.use('/bi', requireAuth, biRoute);
   
 export const APIs_V1 = Router;
