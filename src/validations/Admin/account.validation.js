@@ -14,7 +14,12 @@ const createAccount = async (req, res, next) => {
       'any.required': 'Vui lòng nhập mật khẩu.',
       'string.min': 'Mật khẩu phải có ít nhất 6 ký tự.'
     }),
-    role: Joi.string().valid('Super Admin', 'Admin', 'Staff').default('Admin'),
+    
+    role_id: Joi.string().required().messages({
+      'any.required': 'Vui lòng chọn nhóm quyền.',
+      'string.empty': 'Vui lòng chọn nhóm quyền.'
+    }),
+    
     status: Joi.string().valid('active', 'inactive').default('active')
   });
 
@@ -29,9 +34,10 @@ const createAccount = async (req, res, next) => {
 const updateAccount = async (req, res, next) => {
   const condition = Joi.object({
     fullName: Joi.string(),
-    role: Joi.string().valid('Super Admin', 'Admin', 'Staff'),
+    
+    role_id: Joi.string(),
+    
     status: Joi.string().valid('active', 'inactive')
-    // Thường không cho đổi email, nếu muốn đổi password thì làm API riêng
   });
 
   try {

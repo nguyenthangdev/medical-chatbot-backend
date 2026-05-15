@@ -3,9 +3,11 @@ import { RoleModel } from '../../models/role.model.js';
 const seedAdminRole = async () => {
   try {
     const allPermissions = [
-      "users_view", "users_create", "users_edit", "users_delete",
+      "users_view", "users_edit", "users_delete",
+      "accounts_view", "accounts_create", "accounts_edit", "accounts_delete",
       "roles_view", "roles_create", "roles_edit", "roles_permissions",
-      "chats_view", "chats_delete", "settings_edit"
+      "conversations_view", "conversations_delete", "conversations_edit",
+      "chats_view", "chats_delete", "chats_edit", "settings_edit"
     ];
 
     const adminRole = await RoleModel.findOne({ isSystemAdmin: true });
@@ -41,7 +43,12 @@ const getRoles = async (req, res) => {
 
     res.json({
       data: roles,
-      pagination: { totalItems: total, totalPages: Math.ceil(total / limit), currentPage: parseInt(page), limit: parseInt(limit) },
+      pagination: { 
+        totalItems: total, 
+        totalPage: Math.ceil(total / limit), 
+        currentPage: parseInt(page), 
+        limitItems: parseInt(limit) 
+      },
       keyword
     });
   } catch (err) { res.status(500).json({ error: err.message }); }

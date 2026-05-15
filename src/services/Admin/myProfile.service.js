@@ -1,7 +1,11 @@
 import { AccountModel } from '../../models/account.model.js';
 
 const getMyProfile = async (accountId) => {
-  const account = await AccountModel.findOne({ _id: accountId, deleted: false }).select('-password').lean();
+  const account = await AccountModel.findOne({ _id: accountId, deleted: false })
+    .select('-password')
+    .populate('role_id', 'title titleId permissions isSystemAdmin') 
+    .lean();
+    
   if (!account || account.deleted) {
     throw new Error('Tài khoản không tồn tại hoặc đã bị khóa!');
   }
@@ -20,7 +24,7 @@ const updateMyProfile = async (accountId, updateData) => {
     accountId,
     allowedUpdates,
     { new: true } // Trả về data mới nhất
-  );
+  ).populate('role_id', 'title titleId permissions isSystemAdmin'); 
 
   if (!updatedProfile) {
     throw new Error('Không thể cập nhật tài khoản!');

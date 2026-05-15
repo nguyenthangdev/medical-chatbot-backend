@@ -187,9 +187,25 @@ const sttController = async (req, res) => {
     const audioBlob = new Blob([req.file.buffer], { type: req.file.mimetype || 'audio/webm' });
     formData.append('file', audioBlob, req.file.originalname || 'audio.webm');
     
-    const response = await aiClient.post('/api/stt', formData);
+    const aiServerUrl = process.env.AI_SERVER_URL || "http://localhost:8000";
+    const response = await fetch(`${aiServerUrl}/api/stt`, {
+      method: 'POST',
+      headers: {
+        "X-API-Key": process.env.AI_API_KEY || ""
+      },
+      body: formData
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: 'STT failed',
+        details: data
+      });
+    }
     
-    res.json({ text: response.data.text });
+    res.json({ text: data.text });
   } catch (error) {
     res.status(500).json({ error: 'STT failed', details: error.message });
   }
@@ -197,7 +213,7 @@ const sttController = async (req, res) => {
 
 const ttsController = async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, conversationId } = req.body;
     if (!text?.trim()) return res.status(400).json({ error: 'Text is required' });
 
     const response = await aiClient.post('/api/tts', null, {
@@ -205,9 +221,31 @@ const ttsController = async (req, res) => {
     });
     const audioUrl = response.data?.audio_url;
     const aiServerUrl = process.env.AI_SERVER_URL || "http://localhost:8000";
+    const fullAudioUrl = audioUrl?.startsWith('http') ? audioUrl : `${aiServerUrl}${audioUrl}`;
+
+    if (conversationId) {
+      const conversation = await ConversationModel.findOne({
+        _id: conversationId,
+        userId: req.user._id,
+        deleted: { $ne: true },
+        status: { $ne: 'inactive' }
+      });
+
+      if (conversation) {
+        await MessageModel.findOneAndUpdate(
+          {
+            conversationId,
+            role: 'assistant',
+            content: text
+          },
+          { audio_url: fullAudioUrl },
+          { sort: { createdAt: -1 } }
+        );
+      }
+    }
 
     res.json({
-      audio_url: audioUrl?.startsWith('http') ? audioUrl : `${aiServerUrl}${audioUrl}`
+      audio_url: fullAudioUrl
     });
   } catch (error) {
     res.status(500).json({ error: 'TTS failed', details: error.response?.data || error.message });

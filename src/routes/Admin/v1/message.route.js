@@ -1,11 +1,12 @@
 import express from 'express';
 import { messageController } from '../../../controllers/Admin/message.controller.js';
 import { messageValidation } from '../../../validations/Admin/message.validation.js'
+import { requirePermission } from '../../../middlewares/Admin/role.middleware.js'; 
 
 const Router = express.Router();
 
 Router.route('/')
-  .post(messageValidation.createMessage, messageController.createMessage);
+  .post(requirePermission('chats_create'), messageValidation.createMessage, messageController.createMessage);
 
 Router.route('/')
   .get(messageController.getAllMessages);
@@ -15,11 +16,11 @@ Router.route('/conversation/:conversationId')
   .get(messageController.getByConversation);
 
 Router.route('/:id/toggle')
-  .put(messageController.toggleMessage)
+  .put(requirePermission('chats_edit'), messageController.toggleMessage)
 
 // Xóa tin nhắn theo ID
 Router.route('/:id')
-  .delete(messageController.deleteMessage)
+  .delete(requirePermission('chats_delete'), messageController.deleteMessage)
   .get(messageController.getDetail);
   
 export const messageRoute = Router;

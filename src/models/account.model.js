@@ -7,6 +7,11 @@ const accountSchema = new mongoose.Schema(
     fullName: { type: String, required: true },
     phone: { type: String },
     avatar: { type: String },
+    role_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Role',
+      required: true
+    },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     deleted: { type: Boolean, default: false }
   },
