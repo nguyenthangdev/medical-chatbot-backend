@@ -1,104 +1,30 @@
-import { chatClientService } from '../../services/Client/ai.service.js'
-import { ConversationModel } from '../../models/conversation.model.js'
-import { MessageModel } from '../../models/message.model.js'
-import { createSession, aiClient } from '../../services/Client/ai.service.js'
-import { SettingModel } from "../../models/setting.model.js"
-import mongoose from 'mongoose'
+import { chatService } from '../../services/Client/chat.service.js';
 
 const createConversation = async (req, res) => {
   try {
-    const { userId, model = 'qwen-7b' } = req.body
-    console.log("reqBody: ", req.body)
-    if (!userId) return res.status(400).json({ error: 'userId là bắt buộc' })
+    const { userId, model = 'qwen-7b' } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId là bắt buộc' });
 
-    const aiData = await createSession(userId, model)
-    console.log("aiData: ",aiData)
-    const conversation = await ConversationModel.create({
-      userId,
-      model,
-      aiSessionId: aiData.session_id,
-      title: 'Cuộc hội thoại mới',
-    })
-
-    res.status(201).json({
-      conversationId: conversation._id,
-      aiSessionId: aiData.session_id,
-    })
+    const result = await chatService.createNewConversation(userId, model);
+    res.status(201).json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-}
+};
 
 const sendMessage = async (req, res) => {
   try {
-    const { conversationId, message, model = 'qwen-7b' } = req.body
-    if (!conversationId || !message) return res.status(400).json({ error: 'Thiếu dữ liệu' })
+    const { conversationId, message, model = 'qwen-7b' } = req.body;
+    if (!conversationId || !message) return res.status(400).json({ error: 'Thiếu dữ liệu' });
 
-    const conversation = await ConversationModel.findById(conversationId)
-    if (!conversation) return res.status(404).json({ error: 'Không tìm thấy conversation' })
+    const userId = req.user._id;
+    const result = await chatService.processAndSaveMessage(userId, conversationId, message, model);
 
-    const baseModelName = model.split('-')[0].toLowerCase(); 
-    const config = await SettingModel.findOne({ modelName: baseModelName });
-    const maxTokensLimit = config ? config.maxTokens : 2000;
-    const isMaintenance = config ? config.maintenanceMode : false;
-
-    if (isMaintenance) {
-      return res.json({ response: `⚠️ **Bảo trì:** Mô hình ${baseModelName.toUpperCase()} đang được bảo trì.` });
-    }
-    // const lastMessage = await MessageModel.findOne({ conversationId }).sort({ createdAt: -1 });
-    // const currentUsedTokens = lastMessage?.tokens?.token_remaining || 0;
-    const result = await MessageModel.aggregate([
-      { $match: { conversationId: new mongoose.Types.ObjectId(conversationId), role: 'assistant' } },
-      { $group: { _id: null, totalUsed: { $sum: "$tokens.total_tokens" } } }
-    ]);
-    const currentUsedTokens = result[0]?.totalUsed || 0;
-
-    if (currentUsedTokens >= maxTokensLimit) {
-      return res.json({ 
-        response: `🚫 **Hết hạn mức:** Phiên này đã hết hạn sử dụng. Hãy tạo cuộc hội thoại mới.` 
-      });
-    }
-    await MessageModel.create({ 
-      conversationId, 
-      role: 'user', 
-      content: message 
-    });
-    await ConversationModel.findByIdAndUpdate(conversationId, {
-      title: message.substring(0, 40) + (message.length > 40 ? '...' : ''),
-    });
-    const userId = req.user._id
-    const aiData = await chatClientService.sendMessage(conversation.aiSessionId, message, model, userId, maxTokensLimit)
-    // Lưu phản hồi AI
-    await MessageModel.create({
-      conversationId,
-      role: 'assistant',
-      content: aiData.answer,
-      model: aiData.model_used,
-      intent: aiData.intent,
-      risk_level: aiData.risk_level,
-      confidence: aiData.confidence,
-      blocked: aiData.blocked,
-      warnings: aiData.warnings,
-      sources: aiData.rag_sources,
-      tokens: {
-        prompt_tokens: aiData.prompt_tokens,
-        completion_tokens: aiData.completion_tokens,
-        total_tokens: aiData.total_tokens,
-        token_remaining: aiData.token_remaining
-      },
-      audio_url: aiData.audio_url,
-      latency: aiData.latency_ms
-    })
-    
-
-    // Cập nhật title nếu là tin nhắn đầu tiên
-    const count = await MessageModel.countDocuments({ conversationId })
-    if (count <= 2) {
-      await ConversationModel.findByIdAndUpdate(conversationId, {
-        title: message.substring(0, 50),
-      })
+    if (result.type === 'MAINTENANCE' || result.type === 'LIMIT_EXCEEDED') {
+      return res.json({ response: result.response });
     }
 
+    const aiData = result.aiData;
     res.json({ 
       response: aiData.answer, 
       model_used: aiData.model_used, 
@@ -114,55 +40,50 @@ const sendMessage = async (req, res) => {
       audio_url: aiData.audio_url,
       token_remaining: aiData.token_remaining,
       latency: aiData.latency_ms
-    })
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    if (err.message === 'NOT_FOUND_CONVERSATION') {
+      return res.status(404).json({ error: 'Không tìm thấy conversation' });
+    }
+    res.status(500).json({ error: err.message });
   }
-}
+};
 
 const getConversations = async (req, res) => {
   try {
-    const { userId } = req.params
-    const conversations = await ConversationModel.find({ 
-      userId, 
-      deleted: { $ne: true },
-      status: { $ne: 'inactive' }
-    }).sort({ updatedAt: -1 }).lean()
-    res.json(conversations)
+    const { userId } = req.params;
+    const conversations = await chatService.getConversationsList(userId);
+    res.json(conversations);
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-}
+};
 
 const getMessages = async (req, res) => {
   try {
-    const { conversationId } = req.params
-    const messages = await MessageModel.find({ 
-      conversationId,
-      deleted: { $ne: true },
-      status: { $ne: 'inactive' }
-    }).sort({ createdAt: 1 }).lean()
-    res.json(messages)
+    const { conversationId } = req.params;
+    const messages = await chatService.getMessagesList(conversationId);
+    res.json(messages);
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-}
+};
 
 const deleteConversation = async (req, res) => {
   try {
-    const { conversationId } = req.params
-    await chatClientService.deleteConversation(conversationId)
-    res.json({ code: 200, message: 'Đã xóa thành công hội thoại' })
+    const { conversationId } = req.params;
+    await chatService.deleteConversation(conversationId);
+    res.json({ code: 200, message: 'Đã xóa thành công hội thoại' });
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-}
+};
 
 const renameConversation = async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { title } = req.body;
-    await chatClientService.renameConversation(conversationId, title);
+    await chatService.renameConversation(conversationId, title);
     res.json({ code: 200, message: 'Đã đổi tên thành công' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -172,39 +93,28 @@ const renameConversation = async (req, res) => {
 const deleteAllConversations = async (req, res) => {
   try {
     const userId = req.user._id;
-    await chatClientService.deleteAllConversations(userId);
-    res.json({ code: 200, message: 'Đã xóa thành công toàn bộ lịch sử tin nhắn'  });
+    await chatService.deleteAllConversations(userId);
+    res.json({ code: 200, message: 'Đã xóa thành công toàn bộ lịch sử tin nhắn' });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+const cancelChat = async (req, res) => {
+  try {
+    const { conversationId } = req.body;
+    const userId = req.user._id;
+    const data = await chatService.cancelChatSession(userId, conversationId);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Cancel failed', details: error.response?.data || error.message });
   }
 };
 
 const sttController = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    
-    const formData = new FormData();
-    const audioBlob = new Blob([req.file.buffer], { type: req.file.mimetype || 'audio/webm' });
-    formData.append('file', audioBlob, req.file.originalname || 'audio.webm');
-    
-    const aiServerUrl = process.env.AI_SERVER_URL || "http://localhost:8000";
-    const response = await fetch(`${aiServerUrl}/api/stt`, {
-      method: 'POST',
-      headers: {
-        "X-API-Key": process.env.AI_API_KEY || ""
-      },
-      body: formData
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: 'STT failed',
-        details: data
-      });
-    }
-    
+    const data = await chatService.processSTT(req.file.buffer, req.file.mimetype, req.file.originalname);
     res.json({ text: data.text });
   } catch (error) {
     res.status(500).json({ error: 'STT failed', details: error.message });
@@ -216,71 +126,29 @@ const ttsController = async (req, res) => {
     const { text, conversationId } = req.body;
     if (!text?.trim()) return res.status(400).json({ error: 'Text is required' });
 
-    const response = await aiClient.post('/api/tts', null, {
-      params: { text }
-    });
-    const audioUrl = response.data?.audio_url;
-    const aiServerUrl = process.env.AI_SERVER_URL || "http://localhost:8000";
-    const fullAudioUrl = audioUrl?.startsWith('http') ? audioUrl : `${aiServerUrl}${audioUrl}`;
-
-    if (conversationId) {
-      const conversation = await ConversationModel.findOne({
-        _id: conversationId,
-        userId: req.user._id,
-        deleted: { $ne: true },
-        status: { $ne: 'inactive' }
-      });
-
-      if (conversation) {
-        await MessageModel.findOneAndUpdate(
-          {
-            conversationId,
-            role: 'assistant',
-            content: text
-          },
-          { audio_url: fullAudioUrl },
-          { sort: { createdAt: -1 } }
-        );
-      }
-    }
-
-    res.json({
-      audio_url: fullAudioUrl
-    });
+    const audio_url = await chatService.processTTS(req.user._id, conversationId, text);
+    res.json({ audio_url });
   } catch (error) {
     res.status(500).json({ error: 'TTS failed', details: error.response?.data || error.message });
   }
 };
 
-// POST /api/v1/chat/message-stream
 const streamMessage = async (req, res) => {
-  console.log("req.body from streamMessage: ", req.body)
   const { conversationId, message, model = 'qwen-7b' } = req.body;
-  
-  // Giả định bạn có middleware xác thực nhét thông tin user vào req.user
   const userId = req.user?._id; 
-  console.log("userId from streamMessage: ", userId)
-  // Bật công tắc Header SSE (Server-Sent Events)
+
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders(); 
 
-  // Giao việc cho Service
-  await chatClientService.streamMessageFromAI(
+  await chatService.streamMessageFromAI(
     userId,
     conversationId,
     message,
     model,
-    // Callback 1: Có chữ mới -> Write xuống Frontend
-    (chunk) => {
-      res.write(chunk);
-    },
-    // Callback 2: Khi AI nói xong -> Đóng kết nối
-    () => {
-      res.end();
-    },
-    // Callback 3: Lỗi thì báo lỗi
+    (chunk) => { res.write(chunk); },
+    () => { res.end(); },
     (error) => {
       res.write(`data: [ERROR]\n\n`);
       res.end();
@@ -298,5 +166,6 @@ export const chatController = {
   ttsController,
   streamMessage,
   renameConversation,
-  deleteAllConversations
+  deleteAllConversations,
+  cancelChat
 };
