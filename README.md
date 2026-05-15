@@ -329,7 +329,3 @@ yarn lint
 - [ ] Thêm Dockerfile và Docker Compose.
 
 ---
-
-## 📄 License
-
-MIT License.
