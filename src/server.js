@@ -14,7 +14,7 @@ const app = express();
 const port = process.env.PORT;
 
 const allowedOrigins = [
-  'http://localhost:5173',
+  'http://localhost:5173'
 ].filter(Boolean) // Loại bỏ undefined
 
 app.use(cors({
