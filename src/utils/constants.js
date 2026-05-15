@@ -9,3 +9,11 @@ export const getCookieOptions = (duration = '14d') => ({
   maxAge: ms(duration),
   path: '/'
 })
+
+export const allPermissions = [
+  "users_view", "users_edit", "users_delete",
+  "accounts_view", "accounts_create", "accounts_edit", "accounts_delete",
+  "roles_view", "roles_create", "roles_edit", "roles_delete", "roles_permissions",
+  "conversations_view", "conversations_delete", "conversations_edit",
+  "chats_view", "chats_delete", "chats_edit", "settings_edit"
+];

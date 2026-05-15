@@ -16,6 +16,7 @@ Router.route('/conversation/:conversationId')
   .put(chatController.renameConversation)
 
 Router.delete('/conversations/all', chatController.deleteAllConversations)
+Router.post('/cancel', chatController.cancelChat)
 Router.post('/message-stream', chatController.streamMessage)
 
 Router.post('/stt', upload.single('file'), chatController.sttController)
