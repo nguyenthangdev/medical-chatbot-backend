@@ -12,7 +12,11 @@
     "clean": "rm -rf build && mkdir build",
     "build": "yarn run clean && yarn run",
     "production": "yarn run build && cross-env BUILD_MODE=production node ./build/src/server.js",
-    "dev": "cross-env BUILD_MODE=dev nodemon ./src/server.js"
+    "dev": "cross-env BUILD_MODE=dev nodemon ./src/server.js",
+    "bi:sync": "node src/scripts/sync-bi.js",
+    "bi:views": "node src/scripts/apply-bi-views.js",
+    "bi:superset": "node src/scripts/setup-superset-datasets.js",
+    "bi:dashboards": "node src/scripts/setup-superset-dashboards.js"
   },
   "dependencies": {
     "axios": "^1.13.6",
@@ -32,6 +36,7 @@
     "ms": "^2.1.3",
     "multer": "^2.1.1",
     "nodemon": "^3.1.14",
+    "pg": "^8.20.0",
     "socket.io": "^4.8.3",
     "streamifier": "^0.1.1",
     "unidecode": "^1.1.0"
