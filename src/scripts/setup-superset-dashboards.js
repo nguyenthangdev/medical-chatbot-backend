@@ -218,27 +218,13 @@ const apiHeaders = ({ accessToken, csrfToken, csrfCookie }) => ({
 });
 
 const createDashboard = async (auth, title, slug) => {
-  try {
-    const { data } = await requestJson(`${SUPERSET_URL}/api/v1/dashboard/`, {
-      method: 'POST',
-      headers: apiHeaders(auth),
-      body: JSON.stringify({ dashboard_title: title, slug, published: true }),
-    });
+  const { data } = await requestJson(`${SUPERSET_URL}/api/v1/dashboard/`, {
+    method: 'POST',
+    headers: apiHeaders(auth),
+    body: JSON.stringify({ dashboard_title: title, slug, published: true }),
+  });
 
-    return data.id;
-  } catch (error) {
-    if (error.status !== 422 && error.status !== 409) {
-      throw error;
-    }
-
-    const dashboardId = await findDashboardId(auth.accessToken, slug);
-    if (!dashboardId) {
-      throw error;
-    }
-
-    console.log(`Dashboard already exists: ${title} (${slug})`);
-    return dashboardId;
-  }
+  return data.id;
 };
 
 const findDashboardId = async (accessToken, slug) => {
@@ -247,6 +233,18 @@ const findDashboardId = async (accessToken, slug) => {
   });
 
   return data.result.find((dashboard) => dashboard.slug === slug)?.id || null;
+};
+
+const deleteDashboardIfExists = async (auth, title, slug) => {
+  const dashboardId = await findDashboardId(auth.accessToken, slug);
+  if (!dashboardId) return;
+
+  await requestJson(`${SUPERSET_URL}/api/v1/dashboard/${dashboardId}`, {
+    method: 'DELETE',
+    headers: apiHeaders(auth),
+  });
+
+  console.log(`Deleted existing dashboard: ${title} (${slug})`);
 };
 
 const getDatasetIds = async (accessToken) => {
@@ -374,6 +372,7 @@ const main = async () => {
     const auth = { accessToken, csrfToken, csrfCookie, datasetIds };
 
     for (const dashboard of DASHBOARDS) {
+      await deleteDashboardIfExists(auth, dashboard.title, dashboard.slug);
       const dashboardId = await createDashboard(auth, dashboard.title, dashboard.slug);
       const createdCharts = [];
 
