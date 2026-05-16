@@ -3,9 +3,9 @@ services:
     image: postgres:16
     container_name: medical-chatbot-bi-postgres
     environment:
-      POSTGRES_USER: bi_user
-      POSTGRES_PASSWORD: bi_password
-      POSTGRES_DB: medical_chatbot_bi
+      POSTGRES_USER: ${BI_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${BI_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${BI_POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -18,7 +18,9 @@ services:
     depends_on:
       - bi-postgres
     environment:
-      SUPERSET_SECRET_KEY: medical-chatbot-superset-dev-secret
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      SUPERSET_GUEST_TOKEN_JWT_SECRET: ${SUPERSET_GUEST_TOKEN_JWT_SECRET}
+      SUPERSET_CORS_ORIGINS: ${SUPERSET_CORS_ORIGINS}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

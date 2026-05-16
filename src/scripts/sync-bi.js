@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { pathToFileURL } from 'node:url';
 import mongoose from 'mongoose';
 import { biPool } from '../config/biDatabase.js';
 import { UserModel } from '../models/user.model.js';
@@ -35,6 +36,13 @@ const requireEnv = (name) => {
   if (!process.env[name]) {
     throw new Error(`Missing required env: ${name}`);
   }
+};
+
+const connectMongo = async () => {
+  if (mongoose.connection.readyState === 1) return;
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  console.log('Connected to MongoDB.');
 };
 
 const syncUsers = async () => {
@@ -248,20 +256,25 @@ const syncSettings = async () => {
   console.log(`Synced settings: ${settings.length}`);
 };
 
+export const runBiSync = async () => {
+  requireEnv('MONGODB_URI');
+  requireEnv('BI_DATABASE_URL');
+
+  await connectMongo();
+
+  await syncUsers();
+  await syncConversations();
+  await syncMessages();
+  await syncSettings();
+
+  console.log('BI sync completed.');
+};
+
+const isDirectRun = () => process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+
 const main = async () => {
   try {
-    requireEnv('MONGODB_URI');
-    requireEnv('BI_DATABASE_URL');
-
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('Connected to MongoDB.');
-
-    await syncUsers();
-    await syncConversations();
-    await syncMessages();
-    await syncSettings();
-
-    console.log('BI sync completed.');
+    await runBiSync();
   } catch (error) {
     console.error('BI sync failed:', error);
     process.exitCode = 1;
@@ -271,4 +284,6 @@ const main = async () => {
   }
 };
 
-main();
+if (isDirectRun()) {
+  main();
+}

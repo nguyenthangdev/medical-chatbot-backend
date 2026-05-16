@@ -272,6 +272,7 @@ Các script hỗ trợ BI:
 
 ```bash
 yarn bi:sync
+yarn bi:sync:worker
 yarn bi:views
 yarn bi:superset
 yarn bi:dashboards
@@ -280,9 +281,12 @@ yarn bi:dashboards
 Mục đích:
 
 - `bi:sync`: đồng bộ dữ liệu phục vụ phân tích.
+- `bi:sync:worker`: chạy riêng worker đồng bộ BI theo chu kỳ `BI_SYNC_INTERVAL_MS`.
 - `bi:views`: tạo/cập nhật database views.
 - `bi:superset`: cấu hình dataset trên Superset.
 - `bi:dashboards`: cấu hình dashboard Superset.
+
+Khi chạy `yarn dev` hoặc `yarn production`, backend cũng tự khởi động BI sync scheduler nếu `BI_SYNC_ENABLED` không phải `false`.
 
 ---
 

@@ -11,10 +11,11 @@
     "lint": "eslint src --ext js --report-unused-disable-directives --max-warnings 0",
     "clean": "rm -rf build && mkdir build",
     "build": "yarn run clean && yarn run",
-    "production": "yarn run build && cross-env BUILD_MODE=production node ./build/src/server.js",
+    "production": "cross-env BUILD_MODE=production node ./src/server.js",
     "dev": "cross-env BUILD_MODE=dev nodemon ./src/server.js",
     "bi:schema": "node src/scripts/apply-bi-schema.js",
     "bi:sync": "node src/scripts/sync-bi.js",
+    "bi:sync:worker": "node src/scripts/bi-sync-worker.js",
     "bi:views": "node src/scripts/apply-bi-views.js",
     "bi:superset": "node src/scripts/setup-superset-datasets.js",
     "bi:dashboards": "node src/scripts/setup-superset-dashboards.js"

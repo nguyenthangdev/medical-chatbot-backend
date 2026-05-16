@@ -39,6 +39,16 @@ yarn bi:views
 yarn bi:superset
 ```
 
+`yarn dev` and `yarn production` start the BI sync scheduler automatically when `BI_SYNC_ENABLED` is not `false`.
+
+To run the scheduler as a separate process instead, keep this worker running from `back-end`:
+
+```bash
+yarn bi:sync:worker
+```
+
+The default interval is 60 seconds. Override it with `BI_SYNC_INTERVAL_MS`.
+
 ## Dashboard 1: System Usage Overview
 
 Use these datasets:
