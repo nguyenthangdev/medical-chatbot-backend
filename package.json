@@ -13,6 +13,7 @@
     "build": "yarn run clean && yarn run",
     "production": "yarn run build && cross-env BUILD_MODE=production node ./build/src/server.js",
     "dev": "cross-env BUILD_MODE=dev nodemon ./src/server.js",
+    "bi:schema": "node src/scripts/apply-bi-schema.js",
     "bi:sync": "node src/scripts/sync-bi.js",
     "bi:views": "node src/scripts/apply-bi-views.js",
     "bi:superset": "node src/scripts/setup-superset-datasets.js",

@@ -7,6 +7,7 @@ const SUPERSET_PASSWORD = process.env.SUPERSET_PASSWORD || 'admin';
 const DASHBOARDS = [
   {
     title: 'BI - System Usage Overview',
+    slug: 'bi-system',
     charts: [
       bigNumber('Total Users', 6, 'count'),
       bigNumber('Total Conversations', 7, 'count'),
@@ -18,6 +19,7 @@ const DASHBOARDS = [
   },
   {
     title: 'BI - Chatbot Performance Analytics',
+    slug: 'bi-chatbot',
     charts: [
       pie('Messages By Role', 1, 'role', 'count'),
       bar('Model Usage', 3, 'model', 'sum__assistant_responses'),
@@ -29,6 +31,7 @@ const DASHBOARDS = [
   },
   {
     title: 'BI - Medical Safety Analytics',
+    slug: 'bi-safety',
     charts: [
       pie('Risk Level Distribution', 4, 'risk_level', 'sum__assistant_responses'),
       timeSeriesBar('High Risk Cases Over Time', 4, 'report_date', 'sum__high_risk_cases'),
@@ -40,6 +43,7 @@ const DASHBOARDS = [
   },
   {
     title: 'BI - AI Model Operations',
+    slug: 'bi-models',
     charts: [
       bar('Requests By Model', 5, 'model', 'sum__requests'),
       bar('Total Tokens By Model', 5, 'model', 'sum__total_tokens'),
@@ -203,11 +207,11 @@ const apiHeaders = ({ accessToken, csrfToken, csrfCookie }) => ({
   ...(csrfCookie ? { Cookie: csrfCookie } : {}),
 });
 
-const createDashboard = async (auth, title) => {
+const createDashboard = async (auth, title, slug) => {
   const { data } = await requestJson(`${SUPERSET_URL}/api/v1/dashboard/`, {
     method: 'POST',
     headers: apiHeaders(auth),
-    body: JSON.stringify({ dashboard_title: title, published: true }),
+    body: JSON.stringify({ dashboard_title: title, slug, published: true }),
   });
 
   return data.id;
@@ -319,7 +323,7 @@ const main = async () => {
     const auth = { accessToken, csrfToken, csrfCookie };
 
     for (const dashboard of DASHBOARDS) {
-      const dashboardId = await createDashboard(auth, dashboard.title);
+      const dashboardId = await createDashboard(auth, dashboard.title, dashboard.slug);
       const createdCharts = [];
 
       for (const chart of dashboard.charts) {
@@ -328,7 +332,7 @@ const main = async () => {
       }
 
       await updateDashboardLayout(auth, dashboardId, dashboard.title, createdCharts);
-      console.log(`Created dashboard: ${dashboard.title}`);
+      console.log(`Created dashboard: ${dashboard.title} (${dashboard.slug})`);
     }
 
     console.log('Superset BI dashboards are ready.');

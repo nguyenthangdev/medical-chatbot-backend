@@ -2,19 +2,19 @@ import axios from 'axios';
 
 const DEFAULT_DASHBOARDS = {
   system: {
-    id: '2',
+    id: 'bi-system',
     title: 'Tổng quan hệ thống',
   },
   chatbot: {
-    id: '3',
+    id: 'bi-chatbot',
     title: 'Hiệu năng chatbot',
   },
   safety: {
-    id: '4',
+    id: 'bi-safety',
     title: 'An toàn y tế',
   },
   models: {
-    id: '5',
+    id: 'bi-models',
     title: 'Quản trị mô hình AI',
   },
 };
