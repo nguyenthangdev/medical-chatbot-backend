@@ -1,3 +1,9 @@
+drop view if exists ai_model_operations;
+drop view if exists medical_safety_daily;
+drop view if exists chatbot_model_daily;
+drop view if exists system_usage_daily;
+drop view if exists chat_message_analytics;
+
 create table if not exists bi_users (
   user_id text primary key,
   full_name text,
