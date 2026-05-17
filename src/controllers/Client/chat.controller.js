@@ -20,11 +20,12 @@ const sendMessage = async (req, res) => {
     const userId = req.user._id;
     const result = await chatService.processAndSaveMessage(userId, conversationId, message, model);
 
-    if (result.type === 'MAINTENANCE' || result.type === 'LIMIT_EXCEEDED') {
+    if (result.type === 'MAINTENANCE' || result.type === 'LIMIT_EXCEEDED' || result.type === 'MESSAGE_TOO_LONG') {
       return res.json({
         response: result.response,
         type: result.type,
         tokenQuota: result.tokenQuota,
+        messageLimit: result.messageLimit,
       });
     }
 
