@@ -4,6 +4,13 @@ import { MessageModel } from '../../models/message.model.js';
 import { ConversationModel } from "../../models/conversation.model.js";
 import { SettingModel } from "../../models/setting.model.js";
 
+const normalizePositiveInteger = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const MAX_MESSAGE_CHARS = normalizePositiveInteger(process.env.CHAT_MAX_MESSAGE_CHARS, 4000);
+
 const aiClient = axios.create({
   baseURL: process.env.AI_SERVER_URL,
   headers: { 
@@ -51,10 +58,16 @@ const createNewConversation = async (userId, model) => {
   return { conversationId: conversation._id, aiSessionId: aiData.session_id };
 };
 
-const normalizePositiveInteger = (value, fallback) => {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-};
+const getMessageLength = (message = '') => [...message.trim()].length;
+
+const createMessageTooLongResponse = (messageLength) => ({
+  type: 'MESSAGE_TOO_LONG',
+  response: `⚠️ **Tin nhắn quá dài:** Nội dung hiện có ${messageLength} ký tự, vượt quá giới hạn ${MAX_MESSAGE_CHARS} ký tự. Vui lòng rút ngắn nội dung rồi gửi lại.`,
+  messageLimit: {
+    maxChars: MAX_MESSAGE_CHARS,
+    currentChars: messageLength,
+  },
+});
 
 const getTokenQuotaState = async ({ conversation, conversationId, maxTokensLimit, refillIntervalMinutes }) => {
   const now = new Date();
@@ -133,6 +146,11 @@ const sendMessage = async (sessionId, message, model = 'qwen-7b', userId, maxTok
 const processAndSaveMessage = async (userId, conversationId, message, model) => {
   const conversation = await ConversationModel.findById(conversationId);
   if (!conversation) throw new Error('NOT_FOUND_CONVERSATION');
+
+  const messageLength = getMessageLength(message);
+  if (messageLength > MAX_MESSAGE_CHARS) {
+    return createMessageTooLongResponse(messageLength);
+  }
 
   // Kiểm tra cấu hình và Maintenance
   const baseModelName = model.split('-')[0].toLowerCase(); 
