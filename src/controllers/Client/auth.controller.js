@@ -61,7 +61,11 @@ const loginClient = async (req, res) => {
   try {
     const result = await authServices.loginClient(req.body);
     if (!result.success) {
-      return res.status(result.code).json({ message: result.message, code: result.code });
+      return res.status(result.code).json({
+        message: result.message,
+        code: result.code,
+        lockedUntil: result.lockedUntil
+      });
     }
 
     res.cookie('accessTokenUser', result.accessTokenUser, getCookieOptions('1h'));

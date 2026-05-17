@@ -17,6 +17,8 @@ const userSchema = new mongoose.Schema(
     emailVerificationExpires: { type: Date, select: false },
     passwordResetToken: { type: String, select: false },
     passwordResetExpires: { type: Date, select: false },
+    loginFailedAttempts: { type: Number, default: 0, select: false },
+    loginLockedUntil: { type: Date, select: false },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     deleted: { type: Boolean, default: false }
   },

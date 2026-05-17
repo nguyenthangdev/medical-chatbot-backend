@@ -12,6 +12,61 @@ const getFrontendUrl = () => process.env.CLIENT_APP_URL || 'http://localhost:517
 
 const getMinutes = (envName, fallback) => Number(process.env[envName] || fallback);
 
+const getLoginMaxAttempts = () => Number(process.env.LOGIN_MAX_FAILED_ATTEMPTS || 5);
+
+const getLoginLockMinutes = () => Number(process.env.LOGIN_LOCK_MINUTES || 5);
+
+const getLockedMessage = (lockedUntil) => {
+  const remainingMs = Math.max(new Date(lockedUntil).getTime() - Date.now(), 0);
+  const remainingMinutes = Math.max(Math.ceil(remainingMs / 60000), 1);
+  return `Bạn nhập sai mật khẩu quá số lần quy định. Tài khoản bị tạm khóa trong ${remainingMinutes} phút.`;
+};
+
+const isLoginLocked = (user) => {
+  return user.loginLockedUntil && user.loginLockedUntil.getTime() > Date.now();
+};
+
+const clearExpiredLoginLock = (user) => {
+  if (user.loginLockedUntil && user.loginLockedUntil.getTime() <= Date.now()) {
+    user.loginFailedAttempts = 0;
+    user.loginLockedUntil = undefined;
+  }
+};
+
+const clearLoginLock = async (user) => {
+  if (user.loginFailedAttempts || user.loginLockedUntil) {
+    user.loginFailedAttempts = 0;
+    user.loginLockedUntil = undefined;
+    await user.save();
+  }
+};
+
+const recordFailedLogin = async (user) => {
+  const maxAttempts = getLoginMaxAttempts();
+  const lockMinutes = getLoginLockMinutes();
+  const failedAttempts = (user.loginFailedAttempts || 0) + 1;
+
+  user.loginFailedAttempts = failedAttempts;
+
+  if (failedAttempts >= maxAttempts) {
+    user.loginLockedUntil = new Date(Date.now() + lockMinutes * 60 * 1000);
+    await user.save();
+    return {
+      success: false,
+      code: 423,
+      message: getLockedMessage(user.loginLockedUntil),
+      lockedUntil: user.loginLockedUntil
+    };
+  }
+
+  await user.save();
+  return {
+    success: false,
+    code: 401,
+    message: `Tài khoản hoặc mật khẩu không chính xác! Bạn còn ${maxAttempts - failedAttempts} lần thử.`
+  };
+};
+
 const buildButton = (url, label) => `
   <p style="margin:0 0 18px;color:#334155;font-size:15px;line-height:1.7;">
     Vui lòng bấm nút bên dưới để tiếp tục. Link có thời hạn và chỉ dùng cho tài khoản của bạn.
@@ -72,14 +127,27 @@ const registerClient = async ({ fullName, email, password }) => {
 };
 
 const loginClient = async ({ email, password }) => {
-  const user = await UserModel.findOne({ email, deleted: false }).select('+password');
+  const user = await UserModel.findOne({ email, deleted: false }).select(
+    '+password +loginFailedAttempts +loginLockedUntil'
+  );
   if (!user) {
     return { success: false, code: 401, message: 'Tài khoản hoặc mật khẩu không chính xác!' };
   }
 
+  if (isLoginLocked(user)) {
+    return {
+      success: false,
+      code: 423,
+      message: getLockedMessage(user.loginLockedUntil),
+      lockedUntil: user.loginLockedUntil
+    };
+  }
+
+  clearExpiredLoginLock(user);
+
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
-    return { success: false, code: 401, message: 'Tài khoản hoặc mật khẩu không chính xác!' };
+    return recordFailedLogin(user);
   }
 
   if (user.emailVerified === false) {
@@ -89,6 +157,8 @@ const loginClient = async ({ email, password }) => {
   if (user.status !== 'active') {
     return { success: false, code: 403, message: 'Tài khoản của bạn đã bị khóa!' };
   }
+
+  await clearLoginLock(user);
 
   const payload = { userId: user._id };
   const accessTokenUser = JWTProvider.generateToken(payload, process.env.JWT_ACCESS_TOKEN_SECRET_CLIENT, '1h');
@@ -178,6 +248,8 @@ const resetPassword = async ({ token, password }) => {
 
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(password, salt);
+  user.loginFailedAttempts = 0;
+  user.loginLockedUntil = undefined;
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
   await user.save();

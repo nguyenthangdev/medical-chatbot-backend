@@ -22,7 +22,10 @@ const loginAdmin = async (req, res) => {
   try {
     const result = await authServices.loginAdmin(req.body);
     if (!result.success) {
-      return res.status(result.code).json({ message: result.message });
+      return res.status(result.code).json({
+        message: result.message,
+        lockedUntil: result.lockedUntil
+      });
     }
 
     const { accessToken, refreshToken, accountAdmin } = result;
