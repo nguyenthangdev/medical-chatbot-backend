@@ -10,12 +10,50 @@ const registerClient = async (req, res) => {
     }
 
     res.status(StatusCodes.CREATED).json({
-      message: 'Đăng ký tài khoản thành công!',
+      message: 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.',
       user: result.user
     });
   } catch (error) {
     console.error('Lỗi khi đăng ký:', error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Lỗi hệ thống khi đăng ký!' });
+  }
+}
+
+const verifyEmail = async (req, res) => {
+  try {
+    const result = await authServices.verifyEmail(req.query.token);
+    if (!result.success) {
+      return res.status(result.code).json({ message: result.message });
+    }
+
+    res.status(StatusCodes.OK).json({ message: 'Xác nhận email thành công! Bạn có thể đăng nhập.' });
+  } catch (error) {
+    console.error('Lỗi xác nhận email:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Lỗi hệ thống khi xác nhận email!' });
+  }
+}
+
+const forgotPassword = async (req, res) => {
+  try {
+    const result = await authServices.forgotPassword(req.body);
+    res.status(StatusCodes.OK).json({ message: result.message });
+  } catch (error) {
+    console.error('Lỗi gửi email đặt lại mật khẩu:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Không thể gửi email đặt lại mật khẩu!' });
+  }
+}
+
+const resetPassword = async (req, res) => {
+  try {
+    const result = await authServices.resetPassword(req.body);
+    if (!result.success) {
+      return res.status(result.code).json({ message: result.message });
+    }
+
+    res.status(StatusCodes.OK).json({ message: 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập.' });
+  } catch (error) {
+    console.error('Lỗi đặt lại mật khẩu:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Lỗi hệ thống khi đặt lại mật khẩu!' });
   }
 }
 
@@ -78,6 +116,9 @@ const logout = async (req, res) => {
 export const authController = {
   registerClient,
   loginClient,
+  verifyEmail,
+  forgotPassword,
+  resetPassword,
   refreshToken,
   logout
 };
