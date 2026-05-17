@@ -13,6 +13,28 @@ const aiClient = axios.create({
   timeout: 120000, 
 });
 
+const normalizeTranscript = (text = '') => text
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/đ/g, 'd')
+  .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const isNoSpeechHallucination = (text = '') => {
+  const normalizedText = normalizeTranscript(text);
+  if (!normalizedText) return false;
+
+  const knownHallucinations = [
+    'hay subscribe cho kenh ghien mi go de khong bo lo nhung video hap dan'
+  ];
+  const promotionalOutroPattern = /^hay subscribe cho kenh .+ de khong bo lo nhung video hap dan$/;
+
+  return promotionalOutroPattern.test(normalizedText)
+    || knownHallucinations.some((phrase) => normalizedText === phrase || normalizedText.includes(phrase));
+};
+
 const createSession = async (userId, model = 'qwen-7b') => {
   return { session_id: `session_${userId}_${Date.now()}` };
 };
@@ -198,6 +220,7 @@ const processSTT = async (fileBuffer, mimetype, originalname) => {
 
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'STT failed');
+  if (isNoSpeechHallucination(data.text)) return { ...data, text: '' };
   return data;
 };
 

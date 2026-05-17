@@ -3,19 +3,23 @@ import { StatusCodes } from 'http-status-codes';
 
 const updateMyProfile = async (req, res, next) => {
   const condition = Joi.object({
-    fullName: Joi.string().required().messages({
-      'any.required': 'Vui lòng nhập họ và tên mới.',
+    fullName: Joi.string().trim().required().messages({
+      'any.required': 'Vui lòng nhập họ và tên.',
       'string.empty': 'Họ và tên không được để trống.'
-    })
-    // Không cho phép validate trường identifier ở đây vì không cho sửa
+    }),
+    yearOfBirth: Joi.string().allow('').optional(),
+    sex: Joi.string().valid('MALE', 'FEMALE', 'OTHER').allow('').optional(),
+    address: Joi.string().allow('').optional(),
+    phone: Joi.string().allow('').optional(),
+    avatar: Joi.string().allow('').optional()
   });
 
   try {
-    // allowUnknown: true giúp bỏ qua lỗi nếu Frontend lỡ gửi thừa data (như avatar, setting hiển thị...)
-    await condition.validateAsync(req.body, { 
+    const value = await condition.validateAsync(req.body, { 
       abortEarly: false, 
       allowUnknown: true 
     });
+    req.body = value;
     next();
   } catch (error) {
     const errorMessage = error.details[0].message;
