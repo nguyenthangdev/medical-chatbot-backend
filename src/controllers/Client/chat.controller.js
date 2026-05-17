@@ -21,7 +21,11 @@ const sendMessage = async (req, res) => {
     const result = await chatService.processAndSaveMessage(userId, conversationId, message, model);
 
     if (result.type === 'MAINTENANCE' || result.type === 'LIMIT_EXCEEDED') {
-      return res.json({ response: result.response });
+      return res.json({
+        response: result.response,
+        type: result.type,
+        tokenQuota: result.tokenQuota,
+      });
     }
 
     const aiData = result.aiData;
