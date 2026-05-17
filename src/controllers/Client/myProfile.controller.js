@@ -17,12 +17,27 @@ const getMyProfile = async (req, res) => {
 const updateMyProfile = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { fullName } = req.body;
+    const {
+      fullName,
+      yearOfBirth,
+      sex,
+      address,
+      phone,
+      avatar
+    } = req.body;
+    const updateData = {
+      fullName,
+      yearOfBirth,
+      sex,
+      address,
+      phone,
+      avatar
+    };
 
     // Cập nhật vào Database và trả về user mới nhất ({ new: true })
     const updatedUser = await UserModel.findByIdAndUpdate(
       userId,
-      { fullName },
+      updateData,
       { new: true }
     ).select('-password');
 
