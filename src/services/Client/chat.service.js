@@ -46,8 +46,49 @@ const createNewConversation = async (userId, model) => {
     model,
     aiSessionId: aiData.session_id,
     title: 'Cuộc hội thoại mới',
+    tokenWindowStartedAt: new Date(),
   });
   return { conversationId: conversation._id, aiSessionId: aiData.session_id };
+};
+
+const normalizePositiveInteger = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const getTokenQuotaState = async ({ conversation, conversationId, maxTokensLimit, refillIntervalMinutes }) => {
+  const now = new Date();
+  const fallbackWindowStart = conversation.tokenWindowStartedAt || conversation.createdAt || now;
+  const refillMs = refillIntervalMinutes * 60 * 1000;
+  let tokenWindowStartedAt = fallbackWindowStart;
+
+  if (now.getTime() - tokenWindowStartedAt.getTime() >= refillMs) {
+    tokenWindowStartedAt = now;
+    await ConversationModel.findByIdAndUpdate(conversationId, { tokenWindowStartedAt });
+  } else if (!conversation.tokenWindowStartedAt) {
+    await ConversationModel.findByIdAndUpdate(conversationId, { tokenWindowStartedAt });
+  }
+
+  const result = await MessageModel.aggregate([
+    {
+      $match: {
+        conversationId: new mongoose.Types.ObjectId(conversationId),
+        role: 'assistant',
+        createdAt: { $gte: tokenWindowStartedAt }
+      }
+    },
+    { $group: { _id: null, totalUsed: { $sum: "$tokens.total_tokens" } } }
+  ]);
+  const usedTokens = result[0]?.totalUsed || 0;
+  const resetAt = new Date(tokenWindowStartedAt.getTime() + refillMs);
+
+  return {
+    usedTokens,
+    remainingTokens: Math.max(maxTokensLimit - usedTokens, 0),
+    tokenWindowStartedAt,
+    resetAt,
+    refillIntervalMinutes,
+  };
 };
 
 const sendMessage = async (sessionId, message, model = 'qwen-7b', userId, maxTokensLimit) => {
@@ -96,22 +137,36 @@ const processAndSaveMessage = async (userId, conversationId, message, model) => 
   // Kiểm tra cấu hình và Maintenance
   const baseModelName = model.split('-')[0].toLowerCase(); 
   const config = await SettingModel.findOne({ modelName: baseModelName });
-  const maxTokensLimit = config ? config.maxTokens : 2000;
+  const maxTokensLimit = normalizePositiveInteger(config?.maxTokens, 2000);
+  const refillIntervalMinutes = normalizePositiveInteger(config?.tokenRefillIntervalMinutes, 30);
   const isMaintenance = config ? config.maintenanceMode : false;
 
   if (isMaintenance) {
     return { type: 'MAINTENANCE', response: `⚠️ **Bảo trì:** Mô hình ${baseModelName.toUpperCase()} đang được bảo trì.` };
   }
 
-  // Kiểm tra giới hạn Token
-  const result = await MessageModel.aggregate([
-    { $match: { conversationId: new mongoose.Types.ObjectId(conversationId), role: 'assistant' } },
-    { $group: { _id: null, totalUsed: { $sum: "$tokens.total_tokens" } } }
-  ]);
-  const currentUsedTokens = result[0]?.totalUsed || 0;
+  // Kiểm tra giới hạn Token trong cửa sổ quota hiện tại. Hết thời gian refill thì quota tự về lại maxTokens.
+  const quotaState = await getTokenQuotaState({
+    conversation,
+    conversationId,
+    maxTokensLimit,
+    refillIntervalMinutes,
+  });
 
-  if (currentUsedTokens >= maxTokensLimit) {
-    return { type: 'LIMIT_EXCEEDED', response: `🚫 **Hết hạn mức:** Phiên này đã hết hạn sử dụng. Hãy tạo cuộc hội thoại mới.` };
+  if (quotaState.usedTokens >= maxTokensLimit) {
+    const waitMinutes = Math.max(1, Math.ceil((quotaState.resetAt.getTime() - Date.now()) / 60000));
+    return {
+      type: 'LIMIT_EXCEEDED',
+      response: `🚫 **Hết hạn mức:** Phiên này đã dùng hết ${maxTokensLimit} token. Bạn có thể tiếp tục chat sau khoảng ${waitMinutes} phút.`,
+      tokenQuota: {
+        maxTokens: maxTokensLimit,
+        usedTokens: quotaState.usedTokens,
+        remainingTokens: 0,
+        resetAt: quotaState.resetAt,
+        refillIntervalMinutes: quotaState.refillIntervalMinutes,
+        waitMinutes,
+      },
+    };
   }
 
   // Lưu tin nhắn User và cập nhật tiêu đề tạm
@@ -122,6 +177,10 @@ const processAndSaveMessage = async (userId, conversationId, message, model) => 
 
   // Gọi AI
   const aiData = await sendMessage(conversation.aiSessionId, message, model, userId, maxTokensLimit);
+  const totalTokens = normalizePositiveInteger(aiData.total_tokens, 0);
+  const tokenRemaining = Number.isFinite(Number(aiData.token_remaining))
+    ? Number(aiData.token_remaining)
+    : Math.max(quotaState.remainingTokens - totalTokens, 0);
 
   // Lưu tin nhắn Assistant
   await MessageModel.create({
@@ -139,7 +198,7 @@ const processAndSaveMessage = async (userId, conversationId, message, model) => 
       prompt_tokens: aiData.prompt_tokens,
       completion_tokens: aiData.completion_tokens,
       total_tokens: aiData.total_tokens,
-      token_remaining: aiData.token_remaining
+      token_remaining: tokenRemaining
     },
     audio_url: aiData.audio_url,
     latency: aiData.latency_ms
@@ -151,7 +210,13 @@ const processAndSaveMessage = async (userId, conversationId, message, model) => 
     await ConversationModel.findByIdAndUpdate(conversationId, { title: message.substring(0, 50) });
   }
 
-  return { type: 'SUCCESS', aiData };
+  return {
+    type: 'SUCCESS',
+    aiData: {
+      ...aiData,
+      token_remaining: tokenRemaining,
+    },
+  };
 };
 
 const getConversationsList = async (userId) => {

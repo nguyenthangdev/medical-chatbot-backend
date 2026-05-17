@@ -20,6 +20,10 @@ const conversationSchema = new mongoose.Schema(
       type: String,
       default: 'qwen-7b',
     },
+    tokenWindowStartedAt: {
+      type: Date,
+      default: Date.now,
+    },
     deleted: { type: Boolean, default: false },
     status: {
       type: String,
