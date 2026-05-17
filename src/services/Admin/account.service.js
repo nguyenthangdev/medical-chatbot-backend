@@ -49,6 +49,12 @@ const createAccount = async (data) => {
 };
 
 const updateAccount = async (id, updateData) => {
+  delete updateData.confirmPassword;
+
+  if (!updateData.password) {
+    delete updateData.password;
+  }
+
   // Nếu có truyền mật khẩu mới thì mã hóa nó
   if (updateData.password) {
     const salt = await bcrypt.genSalt(10);
@@ -74,7 +80,7 @@ const deleteAccount = async (id, currentAdminId) => {
 const getAccountById = async (id) => {
   const account = await AccountModel.findOne({ _id: id, deleted: false })
     .select('-password')
-    .populate('role_id', 'title titleId');
+    .populate('role_id', 'title titleId isSystemAdmin');
   if (!account) throw new Error('ACCOUNT_NOT_FOUND');
   return account;
 };

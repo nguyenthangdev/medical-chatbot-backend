@@ -7,8 +7,17 @@ const Router = express.Router();
 Router.route('/register')
   .post(authValidation.registerClient, authController.registerClient);
 
+Router.route('/verify-email')
+  .get(authValidation.verifyEmail, authController.verifyEmail);
+
 Router.route('/login')
   .post(authValidation.loginClient, authController.loginClient);
+
+Router.route('/forgot-password')
+  .post(authValidation.forgotPassword, authController.forgotPassword);
+
+Router.route('/reset-password')
+  .post(authValidation.resetPassword, authController.resetPassword);
 
 Router.route('/refresh-token')
   .post(authController.refreshToken);

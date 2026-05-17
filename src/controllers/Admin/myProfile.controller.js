@@ -29,4 +29,18 @@ const updateMyProfile = async (req, res) => {
   }
 };
 
-export const myProfileController = { getMyProfile, updateMyProfile };
+const changePassword = async (req, res) => {
+  try {
+    const accountId = req.accountAdmin._id;
+    await myProfileService.changePassword(accountId, req.body);
+
+    res.status(StatusCodes.OK).json({
+      message: 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại.',
+      code: 200
+    });
+  } catch (error) {
+    res.status(StatusCodes.BAD_REQUEST).json({ message: error.message });
+  }
+};
+
+export const myProfileController = { getMyProfile, updateMyProfile, changePassword };

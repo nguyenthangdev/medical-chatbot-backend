@@ -1,4 +1,5 @@
 import { AccountModel } from '../../models/account.model.js';
+import bcrypt from 'bcrypt';
 
 const getMyProfile = async (accountId) => {
   const account = await AccountModel.findOne({ _id: accountId, deleted: false })
@@ -32,4 +33,32 @@ const updateMyProfile = async (accountId, updateData) => {
   return updatedProfile;
 };
 
-export const myProfileService = { getMyProfile, updateMyProfile };
+const changePassword = async (accountId, { currentPassword, newPassword }) => {
+  const account = await AccountModel.findOne({ _id: accountId, deleted: false }).select(
+    '+password +loginFailedAttempts +loginLockedUntil'
+  );
+
+  if (!account) {
+    throw new Error('Tài khoản không tồn tại hoặc đã bị khóa!');
+  }
+
+  const isCurrentPasswordMatch = await bcrypt.compare(currentPassword, account.password);
+  if (!isCurrentPasswordMatch) {
+    throw new Error('Mật khẩu hiện tại không chính xác!');
+  }
+
+  const isSamePassword = await bcrypt.compare(newPassword, account.password);
+  if (isSamePassword) {
+    throw new Error('Mật khẩu mới không được trùng mật khẩu hiện tại!');
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  account.password = await bcrypt.hash(newPassword, salt);
+  account.loginFailedAttempts = 0;
+  account.loginLockedUntil = undefined;
+  await account.save();
+
+  return true;
+};
+
+export const myProfileService = { getMyProfile, updateMyProfile, changePassword };
