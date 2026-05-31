@@ -12,6 +12,8 @@ const accountSchema = new mongoose.Schema(
       ref: 'Role',
       required: true
     },
+    loginFailedAttempts: { type: Number, default: 0, select: false },
+    loginLockedUntil: { type: Date, select: false },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     deleted: { type: Boolean, default: false }
   },

@@ -8,4 +8,7 @@ Router.route('/')
   .get(myProfileController.getMyProfile) 
   .patch(myProfileValidation.updateMyProfile, myProfileController.updateMyProfile);
 
+Router.route('/change-password')
+  .patch(myProfileValidation.changePassword, myProfileController.changePassword);
+
 export const myProfileRoute = Router;

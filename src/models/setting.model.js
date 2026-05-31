@@ -9,6 +9,7 @@ const settingSchema = new mongoose.Schema({
   },
   temperature: { type: Number, default: 0.7 },
   maxTokens: { type: Number, default: 2000 },
+  tokenRefillIntervalMinutes: { type: Number, default: 30 },
   maintenanceMode: { type: Boolean, default: false }
 }, { timestamps: true });
 

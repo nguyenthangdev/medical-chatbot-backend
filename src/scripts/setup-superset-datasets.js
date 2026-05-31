@@ -5,6 +5,8 @@ const SUPERSET_USERNAME = process.env.SUPERSET_USERNAME || 'admin';
 const SUPERSET_PASSWORD = process.env.SUPERSET_PASSWORD || 'admin';
 const SUPERSET_DATABASE_NAME = process.env.SUPERSET_DATABASE_NAME || 'medical_chatbot_bi';
 const SUPERSET_SCHEMA = process.env.SUPERSET_SCHEMA || 'public';
+const SUPERSET_DATABASE_SQLALCHEMY_URI = process.env.SUPERSET_DATABASE_SQLALCHEMY_URI
+  || `postgresql+psycopg2://${encodeURIComponent(process.env.BI_POSTGRES_USER || 'bi_user')}:${encodeURIComponent(process.env.BI_POSTGRES_PASSWORD || 'bi_password')}@bi-postgres:5432/${process.env.BI_POSTGRES_DB || 'medical_chatbot_bi'}`;
 
 const DATASETS = [
   'bi_users',
@@ -58,17 +60,37 @@ const getCsrf = async (accessToken) => {
   };
 };
 
-const getDatabaseId = async (accessToken) => {
+const getDatabaseId = async ({ accessToken, csrfToken, csrfCookie }) => {
   const { data } = await requestJson(`${SUPERSET_URL}/api/v1/database/`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
   const database = data.result.find((item) => item.database_name === SUPERSET_DATABASE_NAME);
-  if (!database) {
-    throw new Error(`Superset database not found: ${SUPERSET_DATABASE_NAME}`);
+  if (database) {
+    return database.id;
   }
 
-  return database.id;
+  const { data: createdData } = await requestJson(`${SUPERSET_URL}/api/v1/database/`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken,
+      ...(csrfCookie ? { Cookie: csrfCookie } : {}),
+    },
+    body: JSON.stringify({
+      database_name: SUPERSET_DATABASE_NAME,
+      sqlalchemy_uri: SUPERSET_DATABASE_SQLALCHEMY_URI,
+      expose_in_sqllab: true,
+      allow_run_async: false,
+      allow_ctas: false,
+      allow_cvas: false,
+      allow_dml: false,
+    }),
+  });
+
+  console.log(`Created Superset database: ${SUPERSET_DATABASE_NAME}`);
+  return createdData.id;
 };
 
 const createDataset = async ({ accessToken, csrfToken, csrfCookie, databaseId, tableName }) => {
@@ -103,7 +125,7 @@ const main = async () => {
   try {
     const accessToken = await login();
     const { csrfToken, csrfCookie } = await getCsrf(accessToken);
-    const databaseId = await getDatabaseId(accessToken);
+    const databaseId = await getDatabaseId({ accessToken, csrfToken, csrfCookie });
 
     for (const tableName of DATASETS) {
       await createDataset({ accessToken, csrfToken, csrfCookie, databaseId, tableName });

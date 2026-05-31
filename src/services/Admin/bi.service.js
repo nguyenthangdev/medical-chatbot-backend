@@ -2,19 +2,19 @@ import axios from 'axios';
 
 const DEFAULT_DASHBOARDS = {
   system: {
-    id: 'bi-system',
+    slug: 'bi-system',
     title: 'Tổng quan hệ thống',
   },
   chatbot: {
-    id: 'bi-chatbot',
+    slug: 'bi-chatbot',
     title: 'Hiệu năng chatbot',
   },
   safety: {
-    id: 'bi-safety',
+    slug: 'bi-safety',
     title: 'An toàn y tế',
   },
   models: {
-    id: 'bi-models',
+    slug: 'bi-models',
     title: 'Quản trị mô hình AI',
   },
 };
@@ -36,19 +36,19 @@ const getSupersetConfig = () => {
 const getDashboardMap = () => ({
   system: {
     ...DEFAULT_DASHBOARDS.system,
-    id: process.env.SUPERSET_DASHBOARD_SYSTEM || DEFAULT_DASHBOARDS.system.id,
+    fallbackId: process.env.SUPERSET_DASHBOARD_SYSTEM,
   },
   chatbot: {
     ...DEFAULT_DASHBOARDS.chatbot,
-    id: process.env.SUPERSET_DASHBOARD_CHATBOT || DEFAULT_DASHBOARDS.chatbot.id,
+    fallbackId: process.env.SUPERSET_DASHBOARD_CHATBOT,
   },
   safety: {
     ...DEFAULT_DASHBOARDS.safety,
-    id: process.env.SUPERSET_DASHBOARD_SAFETY || DEFAULT_DASHBOARDS.safety.id,
+    fallbackId: process.env.SUPERSET_DASHBOARD_SAFETY,
   },
   models: {
     ...DEFAULT_DASHBOARDS.models,
-    id: process.env.SUPERSET_DASHBOARD_MODELS || DEFAULT_DASHBOARDS.models.id,
+    fallbackId: process.env.SUPERSET_DASHBOARD_MODELS,
   },
 });
 
@@ -95,6 +95,33 @@ const getCsrfToken = async (accessToken) => {
     csrfToken: response.data.result,
     csrfCookie: response.headers['set-cookie']?.[0]?.split(';')[0],
   };
+};
+
+const getSupersetDashboards = async (accessToken) => {
+  const { supersetUrl } = getSupersetConfig();
+  const response = await supersetRequest({
+    url: `${supersetUrl}/api/v1/dashboard/?page_size=100`,
+    accessToken,
+  });
+
+  return response.data.result || [];
+};
+
+const resolveDashboardId = async ({ dashboard, accessToken }) => {
+  const dashboards = await getSupersetDashboards(accessToken);
+  const matchedDashboard = dashboards.find((item) => item.slug === dashboard.slug);
+
+  if (matchedDashboard?.id) {
+    return matchedDashboard.id;
+  }
+
+  if (dashboard.fallbackId) {
+    return dashboard.fallbackId;
+  }
+
+  const error = new Error(`SUPERSET_DASHBOARD_NOT_FOUND: ${dashboard.slug}`);
+  error.statusCode = 404;
+  throw error;
 };
 
 const ensureEmbeddedDashboard = async ({ dashboardId, accessToken, csrfToken, csrfCookie }) => {
@@ -159,7 +186,7 @@ const getDashboards = () => {
   return Object.entries(dashboardMap).map(([key, dashboard]) => ({
     key,
     title: dashboard.title,
-    supersetUrl: `${supersetUrl}/superset/dashboard/${dashboard.id}/`,
+    supersetUrl: `${supersetUrl}/superset/dashboard/${dashboard.slug}/`,
   }));
 };
 
@@ -175,8 +202,9 @@ const getGuestToken = async ({ dashboardKey, accountAdmin }) => {
 
   const accessToken = await loginSuperset();
   const { csrfToken, csrfCookie } = await getCsrfToken(accessToken);
+  const dashboardId = await resolveDashboardId({ dashboard, accessToken });
   const embeddedDashboardId = await ensureEmbeddedDashboard({
-    dashboardId: dashboard.id,
+    dashboardId,
     accessToken,
     csrfToken,
     csrfCookie,

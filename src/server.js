@@ -6,6 +6,7 @@ import { APIs_V1 as clientRoutes } from './routes/Client/v1/index.js';
 import cookieParser from 'cookie-parser';
 import * as database from './config/database.js';
 import { roleService } from './services/Admin/role.service.js';
+import { createBiSyncScheduler } from './services/Admin/biSyncScheduler.service.js';
 
 database.connect();
 await roleService.seedAdminRole();
@@ -13,10 +14,10 @@ await roleService.seedAdminRole();
 const app = express();
 const port = process.env.PORT;
 
-const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://healthcare-system.ntrthanh.io.vn'
+].filter(Boolean) // Loại bỏ undefined
 
 app.use(cors({
   origin: allowedOrigins, 
@@ -31,6 +32,24 @@ app.use(express.json());
 app.use(`/api/admin/v1`, adminRoutes);
 app.use('/api/v1', clientRoutes);
 
-app.listen(port, () => {
+const biSyncScheduler = createBiSyncScheduler();
+
+const server = app.listen(port, () => {
   console.log(`Server is running on port ${port}`)
+<<<<<<< HEAD
 })
+=======
+  biSyncScheduler.start();
+})
+
+const shutdown = (signal) => {
+  console.log(`Received ${signal}. Shutting down server...`);
+  biSyncScheduler.stop();
+  server.close(() => {
+    process.exit(0);
+  });
+};
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+>>>>>>> 1708d3f416da024782f07cdceb9e945a17fe9612
