@@ -36,9 +36,6 @@ const biSyncScheduler = createBiSyncScheduler();
 
 const server = app.listen(port, () => {
   console.log(`Server is running on port ${port}`)
-<<<<<<< HEAD
-})
-=======
   biSyncScheduler.start();
 })
 
@@ -52,4 +49,3 @@ const shutdown = (signal) => {
 
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
->>>>>>> 1708d3f416da024782f07cdceb9e945a17fe9612
