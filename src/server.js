@@ -15,8 +15,7 @@ const app = express();
 const port = process.env.PORT;
 
 const allowedOrigins = [
-  'http://localhost:5173',
-  'https://healthcare-system.ntrthanh.io.vn'
+  process.env.CLIENT_URL
 ].filter(Boolean) // Loại bỏ undefined
 
 app.use(cors({
