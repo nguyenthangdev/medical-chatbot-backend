@@ -23,7 +23,7 @@
 ## 🖼️ Demo / Preview
 
 ```txt
-API Base URL:       http://localhost:5000
+API Base URL:       http://localhost:3000
 Client API Prefix:  /api/v1
 Admin API Prefix:   /api/admin/v1
 AI Server URL:      http://localhost:8000
@@ -96,6 +96,10 @@ back-end/
 │   ├── sockets/
 │   ├── validations/
 │   └── server.js                # Entry point
+├── superset/
+│   ├── Dockerfile               # Image Superset dùng cho deployment compose
+│   └── superset_config.py       # Cấu hình Superset
+├── Dockerfile                   # Image Node.js backend dùng cho deployment compose
 ├── .env.example
 ├── package.json
 ├── yarn.lock
@@ -133,7 +137,7 @@ cp .env.example .env
 
 | Biến | Ví dụ | Mô tả |
 |---|---|---|
-| `PORT` | `5000` | Port chạy Express API. |
+| `PORT` | `3000` | Port chạy Express API. |
 | `MONGODB_URI` | `mongodb://localhost:27017/medical-chatbot` | URI kết nối MongoDB. |
 | `JWT_SECRET` | `change_me` | Secret JWT dùng chung nếu cần. |
 | `JWT_ACCESS_TOKEN_SECRET_ADMIN` | `change_me_admin_access` | Secret tạo access token cho admin. |
@@ -154,7 +158,7 @@ cp .env.example .env
 Ví dụ tối thiểu:
 
 ```env
-PORT=5000
+PORT=3000
 MONGODB_URI=mongodb://localhost:27017/medical-chatbot
 JWT_SECRET=change_me
 JWT_ACCESS_TOKEN_SECRET_ADMIN=change_me_admin_access
@@ -193,8 +197,37 @@ yarn dev
 Server sẽ chạy tại:
 
 ```txt
-http://localhost:5000
+http://localhost:3000
 ```
+
+---
+
+## 🐳 Docker
+
+Backend Dockerfile nằm tại `back-end/Dockerfile` và được
+`medical-chatbot-deployment/docker-compose.yml` sử dụng với build context
+`../back-end`.
+Superset Dockerfile nằm tại `back-end/superset/Dockerfile` và cũng được
+`medical-chatbot-deployment/docker-compose.yml` build từ context
+`../back-end/superset`.
+
+Dockerfile backend hiện:
+
+- Dùng `node:24-alpine`.
+- Cài dependencies từ `package.json` và `yarn.lock`.
+- Copy `src/`, `bi-schema.sql`, `bi-views.sql`.
+- Expose port `3000`.
+- Chạy mặc định bằng `yarn dev`.
+
+Chạy full stack từ thư mục deployment:
+
+```bash
+cd ../medical-chatbot-deployment
+docker compose up -d --build
+```
+
+Trong compose, backend được mount source `../back-end:/app`, dùng volume riêng
+cho `/app/node_modules`, và nhận `PORT=3000` từ `docker-compose.yml`.
 
 ---
 
@@ -294,7 +327,6 @@ Có thể deploy lên:
 - Render
 - Railway
 - Fly.io
-- Docker host
 
 Checklist production:
 
@@ -326,6 +358,5 @@ yarn lint
 - [ ] Hoàn thiện realtime chat bằng Socket.IO hoặc SSE.
 - [ ] Chuẩn hóa error response toàn hệ thống.
 - [ ] Bổ sung audit log cho admin actions.
-- [ ] Thêm Dockerfile và Docker Compose.
 
 ---

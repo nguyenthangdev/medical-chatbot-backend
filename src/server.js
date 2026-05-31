@@ -13,9 +13,10 @@ await roleService.seedAdminRole();
 const app = express();
 const port = process.env.PORT;
 
-const allowedOrigins = [
-  'http://localhost:5173'
-].filter(Boolean) // Loại bỏ undefined
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 app.use(cors({
   origin: allowedOrigins, 
