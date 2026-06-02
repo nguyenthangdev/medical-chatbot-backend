@@ -7,8 +7,6 @@
 ![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white)
-![Socket.IO](https://img.shields.io/badge/Socket.IO-4-010101?logo=socket.io&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green)
 
 </div>
 
@@ -44,7 +42,6 @@ Superset URL:       http://localhost:8088
 - Tích hợp BI database và Apache Superset.
 - Script đồng bộ dữ liệu BI, tạo view, dataset và dashboard.
 - Validate request bằng Joi.
-- Chuẩn bị nền tảng cho realtime với Socket.IO.
 
 ---
 
@@ -59,7 +56,6 @@ Superset URL:       http://localhost:8088
 | Auth | JWT, Cookie Parser, bcrypt/bcryptjs |
 | Validation | Joi |
 | Upload | Multer, Cloudinary |
-| Realtime | Socket.IO |
 | HTTP Client | Axios |
 | Dev Tools | Nodemon, Cross Env |
 
@@ -350,17 +346,5 @@ Checklist production:
 ```bash
 yarn lint
 ```
-
----
-
-## 🗺️ Roadmap
-
-- [ ] Chuẩn hóa script production build.
-- [ ] Bổ sung OpenAPI/Swagger documentation cho Express API.
-- [ ] Thêm unit test cho service và middleware.
-- [ ] Thêm integration test cho auth, role, chat.
-- [ ] Hoàn thiện realtime chat bằng Socket.IO hoặc SSE.
-- [ ] Chuẩn hóa error response toàn hệ thống.
-- [ ] Bổ sung audit log cho admin actions.
 
 ---
