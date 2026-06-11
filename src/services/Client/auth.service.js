@@ -116,7 +116,7 @@ const registerClient = async ({ fullName, email, password }) => {
   user.email = email;
   user.phone = undefined;
   user.status = 'active';
-  user.emailVerified = false;
+  user.emailVerified = true;
   await user.save();
 
   // await createEmailVerification(user);
