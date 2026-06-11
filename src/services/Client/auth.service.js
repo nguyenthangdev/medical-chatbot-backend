@@ -115,10 +115,11 @@ const registerClient = async ({ fullName, email, password }) => {
   user.password = hashedPassword;
   user.email = email;
   user.phone = undefined;
-  user.status = 'inactive';
+  user.status = 'active';
   user.emailVerified = false;
+  await user.save();
 
-  await createEmailVerification(user);
+  // await createEmailVerification(user);
 
   return {
     success: true,
