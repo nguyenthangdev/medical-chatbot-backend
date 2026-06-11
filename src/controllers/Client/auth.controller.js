@@ -10,7 +10,7 @@ const registerClient = async (req, res) => {
     }
 
     res.status(StatusCodes.CREATED).json({
-      message: 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.',
+      message: 'Đăng ký thành công!',
       user: result.user
     });
   } catch (error) {
